@@ -32,6 +32,10 @@ class _MapWidgetState extends State<MapWidget> {
   // The current zoom level due to pinch-to-zoom
   double _gestureZoom = 1.0;
 
+  // The center coordinates
+  double _centerX;
+  double _centerY;
+
   // Build the map tiles. For now, build a NxM square of tiles.
   // Where N and M are determined from the container size (using the constraints variable)
   List<Widget> _buildTiles(
@@ -92,6 +96,7 @@ class _MapWidgetState extends State<MapWidget> {
           curTileY >= upperTileLimit) {
         tileWidget = Image.asset("images/placeholder.png");
       } else {
+        // Hmm... need to zoom around a focal point
         tileWidget =
             Tile(curTileX, curTileY, this.camera.zoomLevel, _gestureZoom);
       }
@@ -106,33 +111,21 @@ class _MapWidgetState extends State<MapWidget> {
 
     return tiles;
   }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           // Get the dimensions of the container and it's center
-          double height = constraints.maxHeight;
-          double width = constraints.maxWidth;
-          double centerX = width / 2;
-          double centerY = height / 2;
+          _centerX = constraints.maxWidth / 2;
+          _centerY = constraints.maxHeight / 2;
 
           // Build the map around the center of the container.
           // Automatically add as many tiles as necessary.
-          // TODO: Remove the pin widget
-          var tileWidgets = _buildTiles(centerX, centerY, constraints);
-          var pinWidget = Positioned(
-            top: centerY - 48,
-            left: centerX - 24,
-            child: MapPin(48.0),
-          );
-
-          var mapWidget = tileWidgets..add(pinWidget);
-
+          var tileWidgets = _buildTiles(_centerX, _centerY, constraints);
           return Container(
             // decoration: BoxDecoration(border: Border.all()),
-            child: Stack(children: mapWidget),
+            child: Stack(children: tileWidgets),
           );
         },
       ),
@@ -146,18 +139,17 @@ class _MapWidgetState extends State<MapWidget> {
       onScaleUpdate: (details) {
         double deltaX;
         double deltaY;
-        // Calculate how much the pointer moved between last updates.
-        if (details.scale == 1.0) {
-          deltaX = details.focalPoint.dx - this._prevX ?? details.focalPoint.dx;
-          deltaY = details.focalPoint.dy - this._prevY ?? details.focalPoint.dy;
-        } else {
-          deltaX = 0.0;
-          deltaY = 0.0;
-        }
-
+        // Calculate how much the pointer moved between last updates, taking the zoom level
+        // into account
+        deltaX =
+            (details.focalPoint.dx - this._prevX ?? details.focalPoint.dx) /
+                details.scale;
+        deltaY =
+            (details.focalPoint.dy - this._prevY ?? details.focalPoint.dy) /
+                details.scale;
         this._prevX = details.focalPoint.dx;
         this._prevY = details.focalPoint.dy;
-
+        
         setState(() {
           this.camera.x -= deltaX;
           this.camera.y -= deltaY;
@@ -190,6 +182,11 @@ class _MapWidgetState extends State<MapWidget> {
         // Reset the gesture zoom
         setState(() {
           this._gestureZoom = 1.0;
+        });
+      },
+      onDoubleTap: () {
+        setState(() {
+          this.camera.zoomLevel < 19 ? this.camera.zoomLevel++ : null;
         });
       },
     );
