@@ -10,47 +10,62 @@ import 'dart:math';
 // for starters, at all zoom levels (I could also cache the whole 3x3 grid but
 // that would probably take a lot of data)
 class MapWidget extends StatefulWidget {
-  MapWidget(this.camera);
+  MapWidget(this._camera, this._mapPins);
 
   // The camera will always remain in the center of the map.
   // Moving the map actually updates data in this Camera object.
-  final Camera camera;
+  final Camera _camera;
+  final List<MapPin> _mapPins;
 
   @override
-  _MapWidgetState createState() => _MapWidgetState(camera);
+  _MapWidgetState createState() => _MapWidgetState(_camera, _mapPins);
 }
 
 class _MapWidgetState extends State<MapWidget> {
-  _MapWidgetState(this.camera);
+  _MapWidgetState(this._camera, this._mapPins);
 
-  Camera camera;
+  // The camera is always the center of the map
+  Camera _camera;
+  // A list of mapPin widgets, each with it's own coordinates
+  List<MapPin> _mapPins;
 
   // Used by the gesture detector to detect relative movement
   double _prevX;
   double _prevY;
 
   // The current zoom level due to pinch-to-zoom
-  double _gestureZoom = 1.0;
+  double _gestureZoom;
 
   // The center coordinates
   double _centerX;
   double _centerY;
 
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _centerX = 0.0;
+    _centerY = 0.0;
+    _prevX = 0.0;
+    _prevY = 0.0;
+    _gestureZoom = 1.0;
+  }
+
   // Build the map tiles. For now, build a NxM square of tiles.
   // Where N and M are determined from the container size (using the constraints variable)
   List<Widget> _buildTiles(
       double centerX, double centerY, BoxConstraints constraints) {
-    int upperTileLimit = pow(2, this.camera.zoomLevel);
+    int upperTileLimit = pow(2, this._camera.zoomLevel);
 
-    int tileX = tileXfromLatLng(this.camera.coordinates, this.camera.zoomLevel);
-    int tileY = tileYfromLatLng(this.camera.coordinates, this.camera.zoomLevel);
+    int tileX = tileXfromLatLng(this._camera.coordinates, this._camera.zoomLevel);
+    int tileY = tileYfromLatLng(this._camera.coordinates, this._camera.zoomLevel);
 
     // Calculate internal tile coordinates. Also include the current zoom level in calculation
     double cameraX =
-        coordsXinsideTile(this.camera.coordinates, this.camera.zoomLevel) *
+        coordsXinsideTile(this._camera.coordinates, this._camera.zoomLevel) *
             _gestureZoom;
     double cameraY =
-        coordsYinsideTile(this.camera.coordinates, this.camera.zoomLevel) *
+        coordsYinsideTile(this._camera.coordinates, this._camera.zoomLevel) *
             _gestureZoom;
 
     double centerTileX = centerX - cameraX;
@@ -98,19 +113,20 @@ class _MapWidgetState extends State<MapWidget> {
       } else {
         // Hmm... need to zoom around a focal point
         tileWidget =
-            Tile(curTileX, curTileY, this.camera.zoomLevel, _gestureZoom);
+            Tile(curTileX, curTileY, this._camera.zoomLevel, _gestureZoom);
       }
 
       tiles.add(Positioned(
         // Problem. I seem to zoom a bit to the left and top. Why?
-        top: centerTileY + y * _gestureZoom * 256,
-        left: centerTileX + x * _gestureZoom * 256,
+        top: centerTileY + (y * _gestureZoom * 256),
+        left: centerTileX + (x * _gestureZoom * 256),
         child: tileWidget,
       ));
     }
 
     return tiles;
   }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -123,9 +139,13 @@ class _MapWidgetState extends State<MapWidget> {
           // Build the map around the center of the container.
           // Automatically add as many tiles as necessary.
           var tileWidgets = _buildTiles(_centerX, _centerY, constraints);
+          List<Widget> mapPins = [];
+
+          var tilesAndPins = [tileWidgets, mapPins].expand((x) => x).toList();
+
           return Container(
             // decoration: BoxDecoration(border: Border.all()),
-            child: Stack(children: tileWidgets),
+            child: Stack(children: tilesAndPins),
           );
         },
       ),
@@ -137,24 +157,33 @@ class _MapWidgetState extends State<MapWidget> {
       // Called when the user pans around the screen or pinches to zoom
       // This function moves the map around, as well as zooms the map
       onScaleUpdate: (details) {
-        double deltaX;
-        double deltaY;
-        // Calculate how much the pointer moved between last updates, taking the zoom level
-        // into account
+        double deltaX = 0.0;
+        double deltaY = 0.0;
+        // Calculate camera shift due to movement.
         deltaX =
-            (details.focalPoint.dx - this._prevX ?? details.focalPoint.dx) /
+            -(details.focalPoint.dx - this._prevX ?? details.focalPoint.dx) /
                 details.scale;
         deltaY =
-            (details.focalPoint.dy - this._prevY ?? details.focalPoint.dy) /
+            -(details.focalPoint.dy - this._prevY ?? details.focalPoint.dy) /
                 details.scale;
-        this._prevX = details.focalPoint.dx;
-        this._prevY = details.focalPoint.dy;
-        
+
+        // Calculate camera shift due to zoom.
+        double deltaZoom = details.scale - this._gestureZoom;
+        deltaX += deltaZoom *
+            (details.focalPoint.dx - _centerX) /
+            pow(details.scale, 2);
+        deltaY += deltaZoom *
+            (details.focalPoint.dy - _centerY) /
+            pow(details.scale, 2);
+
         setState(() {
-          this.camera.x -= deltaX;
-          this.camera.y -= deltaY;
+          this._camera.x += deltaX;
+          this._camera.y += deltaY;
           this._gestureZoom = details.scale;
         });
+
+        this._prevX = details.focalPoint.dx;
+        this._prevY = details.focalPoint.dy;
       },
       // Called when the user finishes touching the screen
       // This function resets some variables needed for panning the map, as well as
@@ -165,7 +194,7 @@ class _MapWidgetState extends State<MapWidget> {
         this._prevY = null;
 
         double ratio = log(this._gestureZoom ?? 1.0.round()) / log(2);
-        int newZoomLevel = this.camera.zoomLevel + ratio.round();
+        int newZoomLevel = this._camera.zoomLevel + ratio.round();
 
         // Limit zoom level
         if (newZoomLevel < 0)
@@ -173,9 +202,9 @@ class _MapWidgetState extends State<MapWidget> {
         else if (newZoomLevel > 19) newZoomLevel = 19;
 
         // Do not do this while panning.
-        if (newZoomLevel != this.camera.zoomLevel) {
+        if (newZoomLevel != this._camera.zoomLevel) {
           setState(() {
-            this.camera.zoomLevel = newZoomLevel;
+            this._camera.zoomLevel = newZoomLevel;
           });
         }
 
@@ -186,7 +215,7 @@ class _MapWidgetState extends State<MapWidget> {
       },
       onDoubleTap: () {
         setState(() {
-          this.camera.zoomLevel < 19 ? this.camera.zoomLevel++ : null;
+          this._camera.zoomLevel < 19 ? this._camera.zoomLevel++ : null;
         });
       },
     );

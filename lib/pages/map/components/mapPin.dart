@@ -1,9 +1,11 @@
+import 'package:bleacons/classes/latlng.dart';
 import 'package:flutter/material.dart';
 
 class MapPin extends StatelessWidget {
-  MapPin(this.size);
+  MapPin(this.coordinates, this.size);
 
   final double size;
+  final LatLng coordinates;
 
   @override
   Widget build(BuildContext context) {

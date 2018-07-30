@@ -12,16 +12,14 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  _MapPageState(this.camera);
+  _MapPageState(this._camera);
 
-  Camera camera;
+  Camera _camera;
   
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(border: Border.all()),
-      height: 512.0,
-      child: MapWidget(camera),
+      child: MapWidget(_camera, null),
     );
   }
 }
