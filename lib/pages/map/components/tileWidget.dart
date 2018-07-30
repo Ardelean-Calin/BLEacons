@@ -21,7 +21,8 @@ class Tile extends StatelessWidget {
     return FadeInImage.assetNetwork(
       // image: "https://c.tile.openstreetmap.org/$zoomLevel/$x/$y.png",
       // Wikimedia seems to be a better server
-      image: "https://maps.wikimedia.org/osm-intl/${zoomLevel}/${x}/${y}.png",
+      // image: "https://maps.wikimedia.org/osm-intl/${zoomLevel}/${x}/${y}.png",
+      image: "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/$zoomLevel/$x/$y.png",
       placeholder: "images/placeholder.png",
       width: 256 * scale,
       height: 256 * scale,
