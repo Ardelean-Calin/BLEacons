@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'tileWidget.dart';
 import 'package:bleacons/classes/tiles.dart';
 import 'package:bleacons/classes/camera.dart';
-import 'package:trotter/trotter.dart';
 import 'dart:math';
 
 // TODO: Maybe do some smart pre-caching of the images. For example, when getting
@@ -33,10 +32,10 @@ class _MapWidgetState extends State<MapWidget> {
   // The current zoom level due to pinch-to-zoom
   double _gestureZoom = 1.0;
 
-  // Build the map tiles. For now, build a 3x3 square of tiles.
-  // In the future, maybe calculate how many tiles are needed
-  // by taking into account the container size.
-  List<Widget> _buildTiles(double centerX, double centerY) {
+  // Build the map tiles. For now, build a NxM square of tiles.
+  // Where N and M are determined from the container size (using the constraints variable)
+  List<Widget> _buildTiles(
+      double centerX, double centerY, BoxConstraints constraints) {
     int upperTileLimit = pow(2, this.camera.zoomLevel);
 
     int tileX = tileXfromLatLng(this.camera.coordinates, this.camera.zoomLevel);
@@ -55,12 +54,30 @@ class _MapWidgetState extends State<MapWidget> {
 
     List<Widget> tiles = [];
 
-    // Create 9 combinations of relative tile coordinates.
-    // Relative to the center tile, which is 0, 0
-    List possibleRelations = [-1, 0, 1];
-    var amalgams = Amalgams(2, possibleRelations);
+    // Round to nearest upper odd number. So we only have, for example
+    // 3x3 grids or 3x5 grids or 1x3...
+    int numXNeeded = (constraints.maxWidth / 256).ceil();
+    numXNeeded = numXNeeded % 2 == 0 ? numXNeeded + 1 : numXNeeded;
+    numXNeeded = numXNeeded == 1 ? 3 : numXNeeded;
+    int numYNeeded = (constraints.maxHeight / 256).ceil();
+    numYNeeded = numYNeeded % 2 == 0 ? numYNeeded + 1 : numYNeeded;
+    numYNeeded = numYNeeded == 1 ? 3 : numYNeeded;
 
-    for (var coords in amalgams()) {
+    // Generate relative indexes of the form [-2, -1, 0, 1, 2]
+    List possibleX =
+        List.generate(numXNeeded, (index) => index - (numXNeeded / 2).floor());
+    List possibleY =
+        List.generate(numYNeeded, (index) => index - (numYNeeded / 2).floor());
+
+    // Relative to the center tile, which is 0, 0
+    List possibleCoordinates = [];
+    for (var yRel in possibleY) {
+      for (var xRel in possibleX) {
+        possibleCoordinates.add([xRel, yRel]);
+      }
+    }
+
+    for (var coords in possibleCoordinates) {
       int x = coords[0];
       int y = coords[1];
 
@@ -69,10 +86,14 @@ class _MapWidgetState extends State<MapWidget> {
 
       Widget tileWidget;
 
-      if(curTileX < 0 || curTileY < 0 || curTileX >= upperTileLimit || curTileY >= upperTileLimit){
+      if (curTileX < 0 ||
+          curTileY < 0 ||
+          curTileX >= upperTileLimit ||
+          curTileY >= upperTileLimit) {
         tileWidget = Image.asset("images/placeholder.png");
       } else {
-        tileWidget = Tile(curTileX, curTileY, this.camera.zoomLevel, _gestureZoom);
+        tileWidget =
+            Tile(curTileX, curTileY, this.camera.zoomLevel, _gestureZoom);
       }
 
       tiles.add(Positioned(
@@ -98,8 +119,9 @@ class _MapWidgetState extends State<MapWidget> {
           double centerY = height / 2;
 
           // Build the map around the center of the container.
+          // Automatically add as many tiles as necessary.
           // TODO: Remove the pin widget
-          var tileWidgets = _buildTiles(centerX, centerY);
+          var tileWidgets = _buildTiles(centerX, centerY, constraints);
           var pinWidget = Positioned(
             top: centerY - 48,
             left: centerX - 24,
@@ -156,8 +178,7 @@ class _MapWidgetState extends State<MapWidget> {
         // Limit zoom level
         if (newZoomLevel < 0)
           newZoomLevel = 0;
-        else if (newZoomLevel > 19)
-          newZoomLevel = 19;
+        else if (newZoomLevel > 19) newZoomLevel = 19;
 
         // Do not do this while panning.
         if (newZoomLevel != this.camera.zoomLevel) {
@@ -168,7 +189,7 @@ class _MapWidgetState extends State<MapWidget> {
 
         // Reset the gesture zoom
         setState(() {
-            this._gestureZoom = 1.0;
+          this._gestureZoom = 1.0;
         });
       },
     );

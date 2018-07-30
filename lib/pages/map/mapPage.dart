@@ -18,6 +18,10 @@ class _MapPageState extends State<MapPage> {
   
   @override
   Widget build(BuildContext context) {
-    return MapWidget(camera);
+    return Container(
+      decoration: BoxDecoration(border: Border.all()),
+      height: 512.0,
+      child: MapWidget(camera),
+    );
   }
 }
