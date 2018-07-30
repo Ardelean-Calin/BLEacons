@@ -40,12 +40,17 @@ class _MapWidgetState extends State<MapWidget> {
   double _centerX;
   double _centerY;
 
+  // Coordinates topLeft corner of the Viewport. Format is the Map coordinates
+  double _topLeftX;
+  double _topLeftY;
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _centerX = 0.0;
     _centerY = 0.0;
+    _topLeftX = 0.0;
+    _topLeftY = 0.0;
     _prevX = 0.0;
     _prevY = 0.0;
     _gestureZoom = 1.0;
@@ -57,8 +62,10 @@ class _MapWidgetState extends State<MapWidget> {
       double centerX, double centerY, BoxConstraints constraints) {
     int upperTileLimit = pow(2, this._camera.zoomLevel);
 
-    int tileX = tileXfromLatLng(this._camera.coordinates, this._camera.zoomLevel);
-    int tileY = tileYfromLatLng(this._camera.coordinates, this._camera.zoomLevel);
+    int tileX =
+        tileXfromLatLng(this._camera.coordinates, this._camera.zoomLevel);
+    int tileY =
+        tileYfromLatLng(this._camera.coordinates, this._camera.zoomLevel);
 
     // Calculate internal tile coordinates. Also include the current zoom level in calculation
     double cameraX =
@@ -68,6 +75,8 @@ class _MapWidgetState extends State<MapWidget> {
         coordsYinsideTile(this._camera.coordinates, this._camera.zoomLevel) *
             _gestureZoom;
 
+    // Coordinates of the center tile so that the camera coordinates are exactly
+    // in the center of the viewport.
     double centerTileX = centerX - cameraX;
     double centerTileY = centerY - cameraY;
 
@@ -75,10 +84,12 @@ class _MapWidgetState extends State<MapWidget> {
 
     // Round to nearest upper odd number. So we only have, for example
     // 3x3 grids or 3x5 grids or 1x3...
-    int numXNeeded = (constraints.maxWidth / 256).ceil();
+    // TODO: Having the gestureZoom there kinda slows-down zooming out. Maybe caching will fix this?
+    // TODO: Cache images already downloaded
+    int numXNeeded = (constraints.maxWidth / this._gestureZoom / 256).ceil();
     numXNeeded = numXNeeded % 2 == 0 ? numXNeeded + 1 : numXNeeded;
     numXNeeded = numXNeeded == 1 ? 3 : numXNeeded;
-    int numYNeeded = (constraints.maxHeight / 256).ceil();
+    int numYNeeded = (constraints.maxHeight / this._gestureZoom / 256).ceil();
     numYNeeded = numYNeeded % 2 == 0 ? numYNeeded + 1 : numYNeeded;
     numYNeeded = numYNeeded == 1 ? 3 : numYNeeded;
 
@@ -127,6 +138,29 @@ class _MapWidgetState extends State<MapWidget> {
     return tiles;
   }
 
+  List<Widget> _buildMapPins(double centerX, double centerY, BoxConstraints constraints) {
+    List<Widget> pins = [];
+
+    (this._mapPins ??
+        []).forEach((pin) {
+          double x = pin.getX(this._camera.zoomLevel);
+          double y = pin.getY(this._camera.zoomLevel);
+
+          // TODO: Do not render the pins that are not on the screen
+          // This code is buggy, makes pins dissapear on the right.
+          // if (x < 0 || x > (this._topLeftX + constraints.maxWidth)) return;
+          // if (y < 0 || y > (this._topLeftY + constraints.maxHeight)) return;
+
+          pins.add((Positioned(
+            child: pin,
+            top:  centerY + (y - this._camera.y) * this._gestureZoom - 48.0,
+            left: centerX + (x - this._camera.x) * this._gestureZoom - 24.0,
+          )));
+        });
+
+    return pins;
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -136,11 +170,16 @@ class _MapWidgetState extends State<MapWidget> {
           _centerX = constraints.maxWidth / 2;
           _centerY = constraints.maxHeight / 2;
 
+          // Update topLeft coordinates
+          this._topLeftX = this._camera.x - this._centerX;
+          this._topLeftY = this._camera.y - this._centerY;
+
           // Build the map around the center of the container.
           // Automatically add as many tiles as necessary.
           var tileWidgets = _buildTiles(_centerX, _centerY, constraints);
-          List<Widget> mapPins = [];
+          List<Widget> mapPins = _buildMapPins(_centerX, _centerY, constraints);
 
+          // Build a list of tiles and map pins
           var tilesAndPins = [tileWidgets, mapPins].expand((x) => x).toList();
 
           return Container(
@@ -159,6 +198,7 @@ class _MapWidgetState extends State<MapWidget> {
       onScaleUpdate: (details) {
         double deltaX = 0.0;
         double deltaY = 0.0;
+
         // Calculate camera shift due to movement.
         deltaX =
             -(details.focalPoint.dx - this._prevX ?? details.focalPoint.dx) /
