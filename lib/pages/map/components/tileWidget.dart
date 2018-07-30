@@ -19,7 +19,8 @@ class Tile extends StatelessWidget {
     // Algorithm is good. Problem however: We do requests each time I move on screen...
     // I need to monitor this to see if it's fine.
     return FadeInImage.assetNetwork(
-      image: "https://c.tile.openstreetmap.org/$zoomLevel/$x/$y.png",
+      // image: "https://c.tile.openstreetmap.org/$zoomLevel/$x/$y.png",
+      image: "https://maps.wikimedia.org/osm-intl/${zoomLevel}/${x}/${y}.png",
       placeholder: "images/placeholder.png",
       width: 256 * scale,
       height: 256 * scale,

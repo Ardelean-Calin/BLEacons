@@ -1,5 +1,4 @@
-// TODO: rename file to mapPage.dart
-import 'package:bleacons/classes/tiles.dart';
+import 'package:bleacons/classes/camera.dart';
 import 'package:flutter/material.dart';
 import 'components/mapWidget.dart';
 import 'package:bleacons/classes/latlng.dart';
