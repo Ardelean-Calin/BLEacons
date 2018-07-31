@@ -1,33 +1,35 @@
+import 'package:bleacons/classes/latlng.dart';
+
 import 'mapPin.dart';
 import 'package:flutter/material.dart';
 import 'tileWidget.dart';
 import 'package:bleacons/classes/tiles.dart';
 import 'package:bleacons/classes/camera.dart';
 import 'dart:math';
+import 'package:location/location.dart';
 
 // TODO: Maybe do some smart pre-caching of the images. For example, when getting
 // the location, I could start caching all the tiles which contain that location
 // for starters, at all zoom levels (I could also cache the whole 3x3 grid but
 // that would probably take a lot of data)
 class MapWidget extends StatefulWidget {
-  MapWidget(this._camera, this._mapPins);
+  MapWidget([this._mapPins]);
 
-  // The camera will always remain in the center of the map.
-  // Moving the map actually updates data in this Camera object.
-  final Camera _camera;
-  final List<MapPin> _mapPins;
+  List<MapPin> _mapPins;
 
   @override
-  _MapWidgetState createState() => _MapWidgetState(_camera, _mapPins);
+  _MapWidgetState createState() => _MapWidgetState(_mapPins);
 }
 
 class _MapWidgetState extends State<MapWidget> {
-  _MapWidgetState(this._camera, this._mapPins);
+  _MapWidgetState(this._mapPins);
 
   // The camera is always the center of the map
   Camera _camera;
   // A list of mapPin widgets, each with it's own coordinates
   List<MapPin> _mapPins;
+
+  Location _locationObject;
 
   // Used by the gesture detector to detect relative movement
   double _prevX;
@@ -54,26 +56,39 @@ class _MapWidgetState extends State<MapWidget> {
     _prevX = 0.0;
     _prevY = 0.0;
     _gestureZoom = 1.0;
+    _camera = null;
+    _mapPins = [];
+    _locationObject = Location();
+    initLocation();
+  }
+
+  initLocation() async {
+    var currentLocation = await _locationObject.getLocation;
+    setState(() {
+      _camera = Camera(
+          LatLng(currentLocation["latitude"], currentLocation["longitude"]),
+          12);
+      _mapPins.add(MapPin(
+        LatLng(currentLocation["latitude"], currentLocation["longitude"]),
+        color: Colors.red,
+      ));
+    });
   }
 
   // Build the map tiles. For now, build a NxM square of tiles.
   // Where N and M are determined from the container size (using the constraints variable)
   List<Widget> _buildTiles(
       double centerX, double centerY, BoxConstraints constraints) {
-    int upperTileLimit = pow(2, this._camera.zoomLevel);
+    int upperTileLimit = pow(2, _camera.zoomLevel);
 
-    int tileX =
-        tileXfromLatLng(this._camera.coordinates, this._camera.zoomLevel);
-    int tileY =
-        tileYfromLatLng(this._camera.coordinates, this._camera.zoomLevel);
+    int tileX = tileXfromLatLng(_camera.coordinates, _camera.zoomLevel);
+    int tileY = tileYfromLatLng(_camera.coordinates, _camera.zoomLevel);
 
     // Calculate internal tile coordinates. Also include the current zoom level in calculation
-    double cameraX =
-        coordsXinsideTile(this._camera.coordinates, this._camera.zoomLevel) *
-            _gestureZoom;
-    double cameraY =
-        coordsYinsideTile(this._camera.coordinates, this._camera.zoomLevel) *
-            _gestureZoom;
+    double cameraX = coordsXinsideTile(_camera.coordinates, _camera.zoomLevel) *
+        _gestureZoom;
+    double cameraY = coordsYinsideTile(_camera.coordinates, _camera.zoomLevel) *
+        _gestureZoom;
 
     // Coordinates of the center tile so that the camera coordinates are exactly
     // in the center of the viewport.
@@ -86,10 +101,10 @@ class _MapWidgetState extends State<MapWidget> {
     // 3x3 grids or 3x5 grids or 1x3...
     // TODO: Having the gestureZoom there kinda slows-down zooming out. Maybe caching will fix this?
     // TODO: Cache images already downloaded
-    int numXNeeded = (constraints.maxWidth / this._gestureZoom / 256).ceil();
+    int numXNeeded = (constraints.maxWidth / _gestureZoom / 256).ceil();
     numXNeeded = numXNeeded % 2 == 0 ? numXNeeded + 1 : numXNeeded;
     numXNeeded = numXNeeded == 1 ? 3 : numXNeeded;
-    int numYNeeded = (constraints.maxHeight / this._gestureZoom / 256).ceil();
+    int numYNeeded = (constraints.maxHeight / _gestureZoom / 256).ceil();
     numYNeeded = numYNeeded % 2 == 0 ? numYNeeded + 1 : numYNeeded;
     numYNeeded = numYNeeded == 1 ? 3 : numYNeeded;
 
@@ -123,8 +138,7 @@ class _MapWidgetState extends State<MapWidget> {
         tileWidget = Image.asset("images/placeholder.png");
       } else {
         // Hmm... need to zoom around a focal point
-        tileWidget =
-            Tile(curTileX, curTileY, this._camera.zoomLevel, _gestureZoom);
+        tileWidget = Tile(curTileX, curTileY, _camera.zoomLevel, _gestureZoom);
       }
 
       tiles.add(Positioned(
@@ -138,41 +152,45 @@ class _MapWidgetState extends State<MapWidget> {
     return tiles;
   }
 
-  List<Widget> _buildMapPins(double centerX, double centerY, BoxConstraints constraints) {
+  List<Widget> _buildMapPins(
+      double centerX, double centerY, BoxConstraints constraints) {
     List<Widget> pins = [];
 
-    (this._mapPins ??
-        []).forEach((pin) {
-          double x = pin.getX(this._camera.zoomLevel);
-          double y = pin.getY(this._camera.zoomLevel);
+    (_mapPins ?? []).forEach((pin) {
+      double x = pin.getX(_camera.zoomLevel);
+      double y = pin.getY(_camera.zoomLevel);
 
-          // TODO: Do not render the pins that are not on the screen
-          // This code is buggy, makes pins dissapear on the right.
-          // if (x < 0 || x > (this._topLeftX + constraints.maxWidth)) return;
-          // if (y < 0 || y > (this._topLeftY + constraints.maxHeight)) return;
+      // TODO: Do not render the pins that are not on the screen
+      // This code is buggy, makes pins dissapear on the right.
+      // if (x < 0 || x > (_topLeftX + constraints.maxWidth)) return;
+      // if (y < 0 || y > (_topLeftY + constraints.maxHeight)) return;
 
-          pins.add((Positioned(
-            child: pin,
-            top:  centerY + (y - this._camera.y) * this._gestureZoom - 48.0,
-            left: centerX + (x - this._camera.x) * this._gestureZoom - 24.0,
-          )));
-        });
+      pins.add((Positioned(
+        child: pin,
+        top: centerY + (y - _camera.y) * _gestureZoom - 48.0,
+        left: centerX + (x - _camera.x) * _gestureZoom - 24.0,
+      )));
+    });
 
     return pins;
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_camera == null) {
+      return Container();
+    }
     return GestureDetector(
       child: LayoutBuilder(
+        key: Key(_camera.toString()),
         builder: (BuildContext context, BoxConstraints constraints) {
           // Get the dimensions of the container and it's center
           _centerX = constraints.maxWidth / 2;
           _centerY = constraints.maxHeight / 2;
 
           // Update topLeft coordinates
-          this._topLeftX = this._camera.x - this._centerX;
-          this._topLeftY = this._camera.y - this._centerY;
+          _topLeftX = _camera.x - _centerX;
+          _topLeftY = _camera.y - _centerY;
 
           // Build the map around the center of the container.
           // Automatically add as many tiles as necessary.
@@ -190,8 +208,8 @@ class _MapWidgetState extends State<MapWidget> {
       ),
       // Called when the user touches the screen.
       onScaleStart: (details) {
-        this._prevX = details.focalPoint.dx;
-        this._prevY = details.focalPoint.dy;
+        _prevX = details.focalPoint.dx;
+        _prevY = details.focalPoint.dy;
       },
       // Called when the user pans around the screen or pinches to zoom
       // This function moves the map around, as well as zooms the map
@@ -200,15 +218,13 @@ class _MapWidgetState extends State<MapWidget> {
         double deltaY = 0.0;
 
         // Calculate camera shift due to movement.
-        deltaX =
-            -(details.focalPoint.dx - this._prevX ?? details.focalPoint.dx) /
-                details.scale;
-        deltaY =
-            -(details.focalPoint.dy - this._prevY ?? details.focalPoint.dy) /
-                details.scale;
+        deltaX = -(details.focalPoint.dx - _prevX ?? details.focalPoint.dx) /
+            details.scale;
+        deltaY = -(details.focalPoint.dy - _prevY ?? details.focalPoint.dy) /
+            details.scale;
 
         // Calculate camera shift due to zoom.
-        double deltaZoom = details.scale - this._gestureZoom;
+        double deltaZoom = details.scale - _gestureZoom;
         deltaX += deltaZoom *
             (details.focalPoint.dx - _centerX) /
             pow(details.scale, 2);
@@ -217,24 +233,24 @@ class _MapWidgetState extends State<MapWidget> {
             pow(details.scale, 2);
 
         setState(() {
-          this._camera.x += deltaX;
-          this._camera.y += deltaY;
-          this._gestureZoom = details.scale;
+          _camera.x += deltaX;
+          _camera.y += deltaY;
+          _gestureZoom = details.scale;
         });
 
-        this._prevX = details.focalPoint.dx;
-        this._prevY = details.focalPoint.dy;
+        _prevX = details.focalPoint.dx;
+        _prevY = details.focalPoint.dy;
       },
       // Called when the user finishes touching the screen
       // This function resets some variables needed for panning the map, as well as
       // sets the map to the closest zoom level.
       onScaleEnd: (details) {
         // Reset the last finger coordinate
-        this._prevX = null;
-        this._prevY = null;
+        _prevX = null;
+        _prevY = null;
 
-        double ratio = log(this._gestureZoom ?? 1.0.round()) / log(2);
-        int newZoomLevel = this._camera.zoomLevel + ratio.round();
+        double ratio = log(_gestureZoom ?? 1.0.round()) / log(2);
+        int newZoomLevel = _camera.zoomLevel + ratio.round();
 
         // Limit zoom level
         if (newZoomLevel < 0)
@@ -242,20 +258,20 @@ class _MapWidgetState extends State<MapWidget> {
         else if (newZoomLevel > 19) newZoomLevel = 19;
 
         // Do not do this while panning.
-        if (newZoomLevel != this._camera.zoomLevel) {
+        if (newZoomLevel != _camera.zoomLevel) {
           setState(() {
-            this._camera.zoomLevel = newZoomLevel;
+            _camera.zoomLevel = newZoomLevel;
           });
         }
 
         // Reset the gesture zoom
         setState(() {
-          this._gestureZoom = 1.0;
+          _gestureZoom = 1.0;
         });
       },
       onDoubleTap: () {
         setState(() {
-          this._camera.zoomLevel < 19 ? this._camera.zoomLevel++ : null;
+          _camera.zoomLevel < 19 ? _camera.zoomLevel++ : null;
         });
       },
     );
