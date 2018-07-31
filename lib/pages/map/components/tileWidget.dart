@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:cached_network_image/cached_network_image.dart';
 
 class Tile extends StatelessWidget {
   // Constructor
@@ -12,18 +12,17 @@ class Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Returns an image with a placeholder until the network image is
-    // loaded.
     String key = "$zoomLevel/$x/$y";
 
+    // Returns an image with a placeholder until the network image is
+    // loaded.
     // Algorithm is good. Problem however: We do requests each time I move on screen...
     // I need to monitor this to see if it's fine.
-    return FadeInImage.assetNetwork(
-      // image: "https://c.tile.openstreetmap.org/$zoomLevel/$x/$y.png",
-      // Wikimedia seems to be a better server
-      // image: "https://maps.wikimedia.org/osm-intl/${zoomLevel}/${x}/${y}.png",
-      image: "https://cartodb-basemaps-b.global.ssl.fastly.net/light_all/$zoomLevel/$x/$y.png",
-      placeholder: "images/placeholder.png",
+    return CachedNetworkImage(
+      imageUrl:
+          "https://cartodb-basemaps-b.global.ssl.fastly.net/light_all/$zoomLevel/$x/$y.png",
+      placeholder: Image.asset("images/placeholder.png"),
+      errorWidget: new Icon(Icons.error_outline),
       width: 256 * scale,
       height: 256 * scale,
       fit: BoxFit.fill,
