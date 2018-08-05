@@ -7,12 +7,11 @@ import 'pages/nearby/nearbyPage.dart';
 import 'pages/map/mapPage.dart';
 import 'pages/settings/settingsPage.dart';
 
-
-void main(){
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
-    .then((_) {
-      runApp(new MyApp());
-});
+void main() {
+  SystemChrome
+      .setPreferredOrientations([DeviceOrientation.portraitUp]).then((_) {
+    runApp(new MyApp());
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -42,7 +41,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return FloatingActionButton(
         child: Icon(Icons.cloud_upload),
         onPressed: null,
-        tooltip: "Upload",
+        tooltip: "Upload All",
         key: Key("upload"), // having a different key forces animations
       );
     } else if (index == 1) {
