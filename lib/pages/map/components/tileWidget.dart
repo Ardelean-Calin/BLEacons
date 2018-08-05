@@ -21,7 +21,7 @@ class Tile extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl:
           "https://cartodb-basemaps-b.global.ssl.fastly.net/light_all/$zoomLevel/$x/$y.png",
-      placeholder: Image.asset("images/placeholder.png"),
+      // placeholder: Image.asset("images/placeholder.png"),
       errorWidget: new Icon(Icons.error_outline),
       width: 256 * scale,
       height: 256 * scale,
