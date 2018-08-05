@@ -36,7 +36,7 @@ class _MapWidgetState extends State<MapWidget> {
   double _prevY;
 
   // The current zoom level due to pinch-to-zoom
-  double _gestureZoom;
+  double _cameraScale;
 
   // The center coordinates
   double _centerX;
@@ -55,7 +55,7 @@ class _MapWidgetState extends State<MapWidget> {
     _topLeftY = 0.0;
     _prevX = 0.0;
     _prevY = 0.0;
-    _gestureZoom = 1.0;
+    _cameraScale = 1.0;
     _camera = null;
     _mapPins = [];
     _locationObject = Location();
@@ -86,9 +86,9 @@ class _MapWidgetState extends State<MapWidget> {
 
     // Calculate internal tile coordinates. Also include the current zoom level in calculation
     double cameraX = coordsXinsideTile(_camera.coordinates, _camera.zoomLevel) *
-        _gestureZoom;
+        _cameraScale;
     double cameraY = coordsYinsideTile(_camera.coordinates, _camera.zoomLevel) *
-        _gestureZoom;
+        _cameraScale;
 
     // Coordinates of the center tile so that the camera coordinates are exactly
     // in the center of the viewport.
@@ -101,10 +101,10 @@ class _MapWidgetState extends State<MapWidget> {
     // 3x3 grids or 3x5 grids or 1x3...
     // TODO: Having the gestureZoom there kinda slows-down zooming out. Maybe caching will fix this?
     // TODO: Cache images already downloaded
-    int numXNeeded = (constraints.maxWidth / _gestureZoom / 256).ceil();
+    int numXNeeded = (constraints.maxWidth / _cameraScale / 256).ceil();
     numXNeeded = numXNeeded % 2 == 0 ? numXNeeded + 1 : numXNeeded;
     numXNeeded = numXNeeded == 1 ? 3 : numXNeeded;
-    int numYNeeded = (constraints.maxHeight / _gestureZoom / 256).ceil();
+    int numYNeeded = (constraints.maxHeight / _cameraScale / 256).ceil();
     numYNeeded = numYNeeded % 2 == 0 ? numYNeeded + 1 : numYNeeded;
     numYNeeded = numYNeeded == 1 ? 3 : numYNeeded;
 
@@ -138,13 +138,13 @@ class _MapWidgetState extends State<MapWidget> {
         tileWidget = Image.asset("images/placeholder.png");
       } else {
         // Hmm... need to zoom around a focal point
-        tileWidget = Tile(curTileX, curTileY, _camera.zoomLevel, _gestureZoom);
+        tileWidget = Tile(curTileX, curTileY, _camera.zoomLevel, _cameraScale);
       }
 
       tiles.add(Positioned(
         // Problem. I seem to zoom a bit to the left and top. Why?
-        top: centerTileY + (y * _gestureZoom * 256),
-        left: centerTileX + (x * _gestureZoom * 256),
+        top: centerTileY + (y * _cameraScale * 256),
+        left: centerTileX + (x * _cameraScale * 256),
         child: tileWidget,
       ));
     }
@@ -167,8 +167,8 @@ class _MapWidgetState extends State<MapWidget> {
 
       pins.add((Positioned(
         child: pin,
-        top: centerY + (y - _camera.y) * _gestureZoom - 48.0,
-        left: centerX + (x - _camera.x) * _gestureZoom - 24.0,
+        top: centerY + (y - _camera.y) * _cameraScale - 48.0,
+        left: centerX + (x - _camera.x) * _cameraScale - 24.0,
       )));
     });
 
@@ -224,7 +224,7 @@ class _MapWidgetState extends State<MapWidget> {
             details.scale;
 
         // Calculate camera shift due to zoom.
-        double deltaZoom = details.scale - _gestureZoom;
+        double deltaZoom = details.scale - _cameraScale;
         deltaX += deltaZoom *
             (details.focalPoint.dx - _centerX) /
             pow(details.scale, 2);
@@ -235,7 +235,7 @@ class _MapWidgetState extends State<MapWidget> {
         setState(() {
           _camera.x += deltaX;
           _camera.y += deltaY;
-          _gestureZoom = details.scale;
+          _cameraScale = details.scale;
         });
 
         _prevX = details.focalPoint.dx;
@@ -249,7 +249,7 @@ class _MapWidgetState extends State<MapWidget> {
         _prevX = null;
         _prevY = null;
 
-        double ratio = log(_gestureZoom ?? 1.0.round()) / log(2);
+        double ratio = log(_cameraScale ?? 1.0.round()) / log(2);
         int newZoomLevel = _camera.zoomLevel + ratio.round();
 
         // Limit zoom level
@@ -266,7 +266,7 @@ class _MapWidgetState extends State<MapWidget> {
 
         // Reset the gesture zoom
         setState(() {
-          _gestureZoom = 1.0;
+          _cameraScale = 1.0;
         });
       },
       onDoubleTap: () {
