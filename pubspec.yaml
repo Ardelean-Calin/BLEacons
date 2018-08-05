@@ -56,3 +56,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.io/custom-fonts/#from-packages
+
+  fonts:
+    - family: IBM Plex Sans
+      fonts:
+        - asset: fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf
+    - family: IBM Plex Sans Condensed
+      fonts:
+        - asset: fonts/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-Regular.ttf
