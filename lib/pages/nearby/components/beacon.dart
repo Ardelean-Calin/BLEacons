@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'airquality.dart';
 
 class BeaconCard extends StatelessWidget {
   @override
@@ -8,27 +10,49 @@ class BeaconCard extends StatelessWidget {
       child: new Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const ListTile(
-            leading: const Icon(Icons.album),
-            title: const Text('The Enchanted Nightingale'),
-            subtitle:
-                const Text('Music by Julie Gable. Lyrics by Sidney Stein.'),
-          ),
-          new ButtonTheme.bar(
-            // make buttons use the appropriate styles for cards
-            child: new ButtonBar(
-              children: <Widget>[
-                new FlatButton(
-                  child: const Text('BUY TICKETS'),
-                  onPressed: () {/* ... */},
-                ),
-                new FlatButton(
-                  child: const Text('LISTEN'),
-                  onPressed: () {/* ... */},
-                ),
-              ],
-            ),
-          ),
+          ListTile(
+              trailing: AirQualityIndex(Random().nextInt(500)),
+              isThreeLine: true,
+              title: Text(
+                'DEADBEEF',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 20.0,
+                    fontFamily: "IBM Plex Sans",
+                    fontWeight: FontWeight.w600),
+              ),
+              subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                          text: "Last Upload: ",
+                          style: TextStyle(
+                              fontFamily: "IBM Plex Sans",
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.w600,
+                              color: Color.fromARGB(60, 0, 0, 0)),
+                          children: [
+                            TextSpan(
+                                text: "~2d ago",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w600))
+                          ]),
+                    ),
+                  ])),
+          // ButtonTheme.bar(
+          //   height: 10.0,
+          //   child: ButtonBar(
+          //     // mainAxisSize: MainAxisSize.max,
+          //     children: <Widget>[
+          //       IconButton(
+          //         icon: Icon(Icons.cloud_upload),
+          //         onPressed: null,
+          //       )
+          //     ],
+          //   ),
+          // )
         ],
       ),
     );
