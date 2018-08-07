@@ -12,7 +12,7 @@ class Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String key = "$zoomLevel/$x/$y";
+    String query = "$zoomLevel/$x/$y";
 
     // Returns an image with a placeholder until the network image is
     // loaded.
@@ -20,13 +20,13 @@ class Tile extends StatelessWidget {
     // I need to monitor this to see if it's fine.
     return CachedNetworkImage(
       imageUrl:
-          "https://cartodb-basemaps-b.global.ssl.fastly.net/light_all/$zoomLevel/$x/$y.png",
+          "https://cartodb-basemaps-b.global.ssl.fastly.net/light_all/$query.png",
       // placeholder: Image.asset("images/placeholder.png"),
       errorWidget: new Icon(Icons.error_outline),
       width: 256 * scale,
       height: 256 * scale,
       fit: BoxFit.fill,
-      key: Key(key),
+      key: Key(query),
     );
   }
 }
