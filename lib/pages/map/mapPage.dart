@@ -13,7 +13,16 @@ class _MapPageState extends State<MapPage> {
   Widget build(BuildContext context) {
     return Container(
       child: MapWidget([
-        MapPin(LatLng(46.784057, 23.585648)),
+        MapPin(
+          LatLng(46.784057, 23.585648),
+          icon: Icons.bluetooth_searching,
+          color: Colors.blue,
+        ),
+        MapPin(
+          LatLng(46.7699829, 23.5894832),
+          icon: Icons.bluetooth_searching,
+          color: Colors.blue,
+        )
       ]),
     );
   }
