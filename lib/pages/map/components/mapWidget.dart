@@ -56,7 +56,6 @@ class _MapWidgetState extends State<MapWidget> {
     _prevScale = 1.0;
     _cameraScale = 1.0;
     _camera = null;
-    _mapPins = [];
     _locationObject = Location();
     initLocation();
   }

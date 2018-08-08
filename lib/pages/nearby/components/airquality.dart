@@ -32,14 +32,15 @@ class AirQualityIndex extends StatelessWidget {
               color: _getColor(),
               fontFamily: "IBM Plex Sans",
               fontWeight: FontWeight.bold,
-              fontSize: 24.0),
+              fontSize: 32.0),
         ),
         Text(
           "Air Quality Index",
           style: TextStyle(
-              fontFamily: "IBM Plex Sans Condensed",
-              fontSize: 12.0,
-              fontStyle: FontStyle.italic),
+            fontFamily: "IBM Plex Sans Condensed",
+            fontSize: 12.0,
+            fontStyle: FontStyle.italic,
+          ),
         )
       ],
     ));

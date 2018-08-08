@@ -19,8 +19,8 @@ class Tile extends StatelessWidget {
     // Algorithm is good. Problem however: We do requests each time I move on screen...
     // I need to monitor this to see if it's fine.
     return CachedNetworkImage(
-      imageUrl:
-          "https://cartodb-basemaps-b.global.ssl.fastly.net/light_all/$query.png",
+      imageUrl: "https://maps.wikimedia.org/osm-intl/$query.png",
+      // "https://api.mapbox.com/v4/mapbox.emerald/$query.jpg90?access_token=pk.eyJ1IjoiYWNwY2FsaW4iLCJhIjoiY2prbGg2cXJ4MDNpNDN2cm4ycWVqY25iciJ9.5-sRA3r_dB2Dz8SytBe1GA",
       // placeholder: Image.asset("images/placeholder.png"),
       errorWidget: new Icon(Icons.error_outline),
       width: 256 * scale,

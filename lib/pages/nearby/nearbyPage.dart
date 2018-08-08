@@ -13,7 +13,7 @@ class _NearbyPageState extends State<NearbyPage> {
       children: <Widget>[
         BeaconCard(),
         BeaconCard(),
-        // BeaconCard(),
+        BeaconCard(),
         // BeaconCard(),
         // BeaconCard(),
         // BeaconCard(),
