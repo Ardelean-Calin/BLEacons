@@ -21,7 +21,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Bleacons',
       theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
+        brightness: Brightness.light,
+        primaryColor: Colors.blue[700],
+        accentColor: Colors.teal,
       ),
       home: MyHomePage(),
     );

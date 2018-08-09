@@ -62,6 +62,7 @@ flutter:
     - family: IBM Plex Sans
       fonts:
         - asset: fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf
+        - asset: fonts/IBM_Plex_Sans/IBMPlexSans-Bold.ttf
     - family: IBM Plex Sans Condensed
       fonts:
         - asset: fonts/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-Regular.ttf

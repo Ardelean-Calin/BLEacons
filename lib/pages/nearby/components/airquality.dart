@@ -27,21 +27,21 @@ class AirQualityIndex extends StatelessWidget {
         child: Column(
       children: <Widget>[
         Text(
+          "Air Quality Index",
+          style: TextStyle(
+              fontFamily: "IBM Plex Sans Condensed",
+              fontSize: 12.0,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(80, 0, 0, 0)),
+        ),
+        Text(
           _airQuality.toString(),
           style: TextStyle(
               color: _getColor(),
               fontFamily: "IBM Plex Sans",
-              fontWeight: FontWeight.bold,
-              fontSize: 32.0),
+              fontWeight: FontWeight.w800,
+              fontSize: 36.0),
         ),
-        Text(
-          "Air Quality Index",
-          style: TextStyle(
-            fontFamily: "IBM Plex Sans Condensed",
-            fontSize: 12.0,
-            fontStyle: FontStyle.italic,
-          ),
-        )
       ],
     ));
   }
