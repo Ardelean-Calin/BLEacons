@@ -1,13 +1,16 @@
 import 'dart:convert';
 
+import 'package:bleacons/pages/nearby/components/beaconCard.dart';
+
 import 'components/mapPin.dart';
 import 'package:flutter/material.dart';
+import 'package:bleacons/classes/beacon.dart';
 import 'components/mapWidget.dart';
 import 'package:bleacons/classes/latlng.dart';
 import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
 
-const databaseURL = "http://192.168.0.101:4000/graphql/";
+const databaseURL = "<YOUR_URL_HERE>";
 
 class MapPage extends StatefulWidget {
   @override
@@ -15,19 +18,22 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  var beacons;
+  List<Beacon> beacons;
   var _currentLocation;
+  int _selectedBeacon;
 
   _getBeacons() async {
-    String result = (await http.get(
-            databaseURL + "?query={beacons{location{latitude,longitude}}}"))
+    String result = (await http.get(databaseURL +
+            "?query={beacons{id,location{latitude,longitude,address},lastUpdate,lastBatteryLevel,aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
         .body;
 
-    var beacons = jsonDecode(result)["data"]["beacons"];
+    List<Beacon> _beacons = jsonDecode(result)["data"]["beacons"]
+        .map<Beacon>((beacon) => Beacon(beaconData: beacon))
+        .toList();
 
     // Update the beacons
     setState(() {
-      this.beacons = beacons;
+      this.beacons = _beacons;
     });
   }
 
@@ -45,13 +51,27 @@ class _MapPageState extends State<MapPage> {
   }
 
   _buildMarkers() {
-    final List<MapPin> beaconsPins = beacons.map<MapPin>((beacon) {
-      return MapPin(
-        LatLng(beacon["location"]["latitude"], beacon["location"]["longitude"]),
-        icon: Icons.place,
-        color: Colors.blue,
-      );
-    }).toList();
+    final List<MapPin> beaconsPins = beacons
+        .map<MapPin>((Beacon beacon) => MapPin(
+              LatLng(beacon.coordinates.latitude, beacon.coordinates.longitude),
+              icon: Icons.place,
+              // Show which beacon is selected
+              color: beacon.id == _selectedBeacon
+                  ? Colors.deepPurple
+                  : Colors.blue,
+              onTap: () {
+                if (_selectedBeacon != beacon.id)
+                  setState(() {
+                    _selectedBeacon = beacon.id;
+                  });
+                else
+                  setState(() {
+                    // Null means hide the beacon widget
+                    _selectedBeacon = null;
+                  });
+              },
+            ))
+        .toList();
 
     if (_currentLocation != null)
       beaconsPins.add(MapPin(
@@ -87,8 +107,28 @@ class _MapPageState extends State<MapPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: _buildMapWidget(),
+    return Column(
+      children: <Widget>[
+        Expanded(
+          child: Container(
+            child: _buildMapWidget(),
+            height: 400.0,
+          ),
+        ),
+        AnimatedCrossFade(
+          firstChild: Container(),
+          secondChild: _selectedBeacon == null
+              ? Container()
+              : BeaconCard(
+                  beaconObject: beacons
+                      .singleWhere((beacon) => beacon.id == _selectedBeacon),
+                ),
+          crossFadeState: _selectedBeacon == null
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          duration: Duration(milliseconds: 200),
+        )
+      ],
     );
   }
 }

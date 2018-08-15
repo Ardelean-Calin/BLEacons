@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AirQualityIndex extends StatelessWidget {
-  AirQualityIndex(this._airQuality);
+  AirQualityIndex(this._airQuality, {this.selected: false, this.onTap});
 
   final int _airQuality;
+  final bool selected;
+  final Function onTap;
 
   // Return the appropriate color for the current air quality index
   Color _getColor() {
@@ -23,26 +25,42 @@ class AirQualityIndex extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return InkWell(
+      child: Container(
+        padding: EdgeInsets.all(3.0),
         child: Column(
-      children: <Widget>[
-        Text(
-          "Air Quality Index",
-          style: TextStyle(
-              fontFamily: "IBM Plex Sans Condensed",
-              fontSize: 12.0,
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(80, 0, 0, 0)),
+          children: <Widget>[
+            Text(
+              "Air Quality Index",
+              style: TextStyle(
+                  fontFamily: "IBM Plex Sans Condensed",
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(80, 0, 0, 0)),
+            ),
+            Text(
+              _airQuality.toString(),
+              style: TextStyle(
+                  color: _getColor(),
+                  fontFamily: "IBM Plex Sans",
+                  fontWeight: FontWeight.w800,
+                  fontSize: 36.0),
+            ),
+          ],
         ),
-        Text(
-          _airQuality.toString(),
-          style: TextStyle(
-              color: _getColor(),
-              fontFamily: "IBM Plex Sans",
-              fontWeight: FontWeight.w800,
-              fontSize: 36.0),
-        ),
-      ],
-    ));
+        decoration: selected
+            ? BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    blurRadius: 1.5,
+                  ),
+                ],
+                borderRadius: BorderRadius.circular(10.0),
+              )
+            : null,
+      ),
+      onTap: onTap,
+    );
   }
 }

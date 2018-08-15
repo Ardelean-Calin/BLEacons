@@ -3,15 +3,19 @@ import 'package:bleacons/classes/tiles.dart';
 import 'package:flutter/material.dart';
 
 class MapPin extends StatelessWidget {
-  MapPin(this.coordinates,
-      {this.size: 48.0,
-      this.icon: Icons.location_on,
-      this.color: Colors.deepPurple});
+  MapPin(
+    this.coordinates, {
+    this.size: 48.0,
+    this.icon: Icons.location_on,
+    this.color: Colors.deepPurple,
+    this.onTap,
+  });
 
   final double size;
   final LatLng coordinates;
   final IconData icon;
   final Color color;
+  Function onTap;
 
   double getX(int zoomLevel) {
     return fromLatLngX(coordinates, zoomLevel);
@@ -23,10 +27,13 @@ class MapPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(
-      icon,
-      size: size,
-      color: color,
+    return GestureDetector(
+      child: Icon(
+        icon,
+        size: size,
+        color: color,
+      ),
+      onTap: onTap,
     );
   }
 }

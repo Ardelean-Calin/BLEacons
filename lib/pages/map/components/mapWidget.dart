@@ -27,6 +27,8 @@ class _MapWidgetState extends State<MapWidget> {
 
   // The camera is always the center of the map
   Camera _camera;
+  // Holds the current location of the user
+  LatLng _currentLocation;
 
   // Used by the gesture detector to detect relative movement
   double _prevX;
@@ -49,11 +51,11 @@ class _MapWidgetState extends State<MapWidget> {
     _prevY = 0.0;
     _prevScale = 1.0;
     _cameraScale = 1.0;
-    // TODO: initial camera should be at current location
+
+    _currentLocation = LatLng(widget.currentLocation["latitude"],
+        widget.currentLocation["longitude"]);
     _camera = Camera(
-        LatLng(this.widget.currentLocation["latitude"],
-            this.widget.currentLocation["longitude"]),
-        12);
+        LatLng(_currentLocation.latitude, _currentLocation.longitude), 12);
   }
 
   // Build the map tiles. For now, build a NxM square of tiles.
@@ -160,100 +162,118 @@ class _MapWidgetState extends State<MapWidget> {
     if (_camera == null) {
       return Container();
     }
-    return GestureDetector(
-      child: LayoutBuilder(
-        key: Key(_camera.toString()),
-        builder: (BuildContext context, BoxConstraints constraints) {
-          // Get the dimensions of the container and it's center
-          _centerX = constraints.maxWidth / 2;
-          _centerY = constraints.maxHeight / 2;
+    return LayoutBuilder(
+      key: Key(_camera.toString()),
+      builder: (BuildContext context, BoxConstraints constraints) {
+        // Get the dimensions of the container and it's center
+        _centerX = constraints.maxWidth / 2;
+        _centerY = constraints.maxHeight / 2;
 
-          // Build the map around the center of the container.
-          // Automatically add as many tiles as necessary.
-          var tileWidgets = _buildTiles(_centerX, _centerY, constraints);
-          List<Widget> mapPins = _buildMapPins(_centerX, _centerY, constraints);
+        // Build the map around the center of the container.
+        // Automatically add as many tiles as necessary.
+        var tileWidgets = _buildTiles(_centerX, _centerY, constraints);
+        List<Widget> mapPins = _buildMapPins(_centerX, _centerY, constraints);
 
-          // Build a list of tiles and map pins
-          var tilesAndPins = [tileWidgets, mapPins].expand((x) => x).toList();
+        // Build a list of tiles and map pins
+        var tilesAndPins = [tileWidgets, mapPins].expand((x) => x).toList();
 
-          return Container(
-            // decoration: BoxDecoration(border: Border.all()),
-            child: Stack(children: tilesAndPins),
-          );
-        },
-      ),
-      // Called when the user touches the screen.
-      onScaleStart: (details) {
-        _prevX = details.focalPoint.dx;
-        _prevY = details.focalPoint.dy;
-        _initialCameraScale = _cameraScale;
-      },
-      // Called when the user pans around the screen or pinches to zoom
-      // This function moves the map around, as well as zooms the map
-      onScaleUpdate: (details) {
-        double deltaX = 0.0;
-        double deltaY = 0.0;
+        return Scaffold(
+          body: GestureDetector(
+            child: Container(
+              // decoration: BoxDecoration(border: Border.all()),
+              child: Stack(children: tilesAndPins),
+            ),
+            // Called when the user touches the screen.
+            onScaleStart: (details) {
+              _prevX = details.focalPoint.dx;
+              _prevY = details.focalPoint.dy;
+              _initialCameraScale = _cameraScale;
+            },
+            // Called when the user pans around the screen or pinches to zoom
+            // This function moves the map around, as well as zooms the map
+            onScaleUpdate: (details) {
+              double deltaX = 0.0;
+              double deltaY = 0.0;
 
-        // Calculate camera shift due to movement.
-        deltaX = -(details.focalPoint.dx - _prevX) / _cameraScale;
-        deltaY = -(details.focalPoint.dy - _prevY) / _cameraScale;
+              // details.focalPoint returns absolute offset. We make it relative here
+              RenderBox box = context.findRenderObject();
+              Offset relativePosition = box.globalToLocal(details.focalPoint);
+              double relativedx = relativePosition.dx;
+              double relativedy = relativePosition.dy;
 
-        // Calculate camera shift due to zoom.
-        double deltaZoom = details.scale - (_prevScale ?? details.scale);
-        deltaX += deltaZoom *
-            (details.focalPoint.dx - _centerX) /
-            (details.scale * _cameraScale);
-        deltaY += deltaZoom *
-            (details.focalPoint.dy - _centerY) /
-            (details.scale * _cameraScale);
+              // Calculate camera shift due to movement.
+              deltaX = -(details.focalPoint.dx - _prevX) / _cameraScale;
+              deltaY = -(details.focalPoint.dy - _prevY) / _cameraScale;
 
-        // Calculate if the current _cameraScale corresponds to another zoom level
-        double ratio = log(_cameraScale) / log(2);
-        int newZoomLevel =
-            _camera.zoomLevel + ratio.sign.toInt() * ratio.abs().floor();
+              // Calculate camera shift due to zoom.
+              double deltaZoom = details.scale - (_prevScale ?? details.scale);
+              deltaX += deltaZoom *
+                  (relativedx - _centerX) /
+                  (details.scale * _cameraScale);
+              deltaY += deltaZoom *
+                  (relativedy - _centerY) /
+                  (details.scale * _cameraScale);
 
-        // Limit zoom level
-        if (newZoomLevel < 0)
-          newZoomLevel = 0;
-        else if (newZoomLevel > 19) newZoomLevel = 19;
+              // Calculate if the current _cameraScale corresponds to another zoom level
+              double ratio = log(_cameraScale) / log(2);
+              int newZoomLevel =
+                  _camera.zoomLevel + ratio.sign.toInt() * ratio.abs().floor();
 
-        // Calculate the new scale the camera should have and the scale to
-        // which to relate the details.scale to.
-        double _newCameraScale;
-        if (newZoomLevel != _camera.zoomLevel) {
-          _newCameraScale = 1.0;
-          _initialCameraScale = 1 / details.scale;
-        } else {
-          // At fist, _initialCameraScale is 1. Then it becomes 1/2, then 1/4, etc.
-          // so that when zooming in, right after a zoom level change, the product
-          // remains 1.0
-          _newCameraScale = _initialCameraScale * details.scale;
-        }
+              // Limit zoom level
+              if (newZoomLevel < 0)
+                newZoomLevel = 0;
+              else if (newZoomLevel > 19) newZoomLevel = 19;
 
-        _prevX = details.focalPoint.dx;
-        _prevY = details.focalPoint.dy;
-        _prevScale = details.scale;
+              // Calculate the new scale the camera should have and the scale to
+              // which to relate the details.scale to.
+              double _newCameraScale;
+              if (newZoomLevel != _camera.zoomLevel) {
+                _newCameraScale = 1.0;
+                _initialCameraScale = 1 / details.scale;
+              } else {
+                // At fist, _initialCameraScale is 1. Then it becomes 1/2, then 1/4, etc.
+                // so that when zooming in, right after a zoom level change, the product
+                // remains 1.0
+                _newCameraScale = _initialCameraScale * details.scale;
+              }
 
-        // Move and zoom the camera, as well as change the zoom level if necessary
-        setState(() {
-          _camera.x += deltaX;
-          _camera.y += deltaY;
-          _camera.zoomLevel = newZoomLevel;
-          _cameraScale = _newCameraScale;
-        });
-      },
-      // Called when the user finishes touching the screen
-      // This function resets some variables needed for panning the map
-      onScaleEnd: (details) {
-        // Reset the last finger coordinate
-        _prevX = null;
-        _prevY = null;
-        _prevScale = null;
-      },
-      onDoubleTap: () {
-        setState(() {
-          _camera.zoomLevel < 19 ? _camera.zoomLevel++ : null;
-        });
+              _prevX = details.focalPoint.dx;
+              _prevY = details.focalPoint.dy;
+              _prevScale = details.scale;
+
+              // Move and zoom the camera, as well as change the zoom level if necessary
+              setState(() {
+                _camera.x += deltaX;
+                _camera.y += deltaY;
+                _camera.zoomLevel = newZoomLevel;
+                _cameraScale = _newCameraScale;
+              });
+            },
+            // Called when the user finishes touching the screen
+            // This function resets some variables needed for panning the map
+            onScaleEnd: (details) {
+              // Reset the last finger coordinate
+              _prevX = null;
+              _prevY = null;
+              _prevScale = null;
+            },
+            onDoubleTap: () {
+              setState(() {
+                _camera.zoomLevel < 19 ? _camera.zoomLevel++ : null;
+              });
+            },
+          ),
+          floatingActionButton: FloatingActionButton(
+            child: Icon(Icons.my_location),
+            onPressed: () {
+              setState(() {
+                _camera.latitude = _currentLocation.latitude;
+                _camera.longitude = _currentLocation.longitude;
+                _camera.zoomLevel = 12;
+              });
+            },
+          ),
+        );
       },
     );
   }

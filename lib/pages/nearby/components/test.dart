@@ -29,16 +29,16 @@ class SimpleLineChart extends StatelessWidget {
   }
 
   /// Create one series with sample hard coded data.
-  static List<charts.Series<LinearSales, int>> _createSampleData() {
-    final data =
-        List.generate(10, (i) => LinearSales(i, Random().nextInt(100)));
+  static List<charts.Series<DataPoint, double>> _createSampleData() {
+    final data = List.generate(
+        10, (i) => DataPoint(i.toDouble(), Random().nextDouble() * 50));
 
     return [
-      new charts.Series<LinearSales, int>(
-        id: 'Sales',
+      new charts.Series<DataPoint, double>(
+        id: 'value',
         colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-        domainFn: (LinearSales sales, _) => sales.year,
-        measureFn: (LinearSales sales, _) => sales.sales,
+        domainFn: (DataPoint value, _) => value.time,
+        measureFn: (DataPoint value, _) => value.value,
         data: data,
       )
     ];
@@ -46,9 +46,9 @@ class SimpleLineChart extends StatelessWidget {
 }
 
 /// Sample linear data type.
-class LinearSales {
-  final int year;
-  final int sales;
+class DataPoint {
+  final double time;
+  final double value;
 
-  LinearSales(this.year, this.sales);
+  DataPoint(this.time, this.value);
 }
