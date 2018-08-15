@@ -6,19 +6,19 @@ import 'tileWidget.dart';
 import 'package:bleacons/classes/tiles.dart';
 import 'package:bleacons/classes/camera.dart';
 import 'dart:math';
-import 'package:location/location.dart';
 
 // TODO: Maybe do some smart pre-caching of the images. For example, when getting
 // the location, I could start caching all the tiles which contain that location
 // for starters, at all zoom levels (I could also cache the whole 3x3 grid but
 // that would probably take a lot of data)
 class MapWidget extends StatefulWidget {
-  MapWidget([this._mapPins]);
+  MapWidget({this.mapPins, this.currentLocation});
 
-  List<MapPin> _mapPins;
+  final List<MapPin> mapPins;
+  final Map<String, double> currentLocation;
 
   @override
-  _MapWidgetState createState() => _MapWidgetState(_mapPins);
+  _MapWidgetState createState() => _MapWidgetState();
 }
 
 class _MapWidgetState extends State<MapWidget> {
@@ -27,10 +27,6 @@ class _MapWidgetState extends State<MapWidget> {
 
   // The camera is always the center of the map
   Camera _camera;
-  // A list of mapPin widgets, each with it's own coordinates
-  List<MapPin> _mapPins;
-
-  Location _locationObject;
 
   // Used by the gesture detector to detect relative movement
   double _prevX;
@@ -44,8 +40,6 @@ class _MapWidgetState extends State<MapWidget> {
   double _centerX;
   double _centerY;
 
-  _MapWidgetState(this._mapPins);
-
   @override
   void initState() {
     super.initState();
@@ -55,22 +49,11 @@ class _MapWidgetState extends State<MapWidget> {
     _prevY = 0.0;
     _prevScale = 1.0;
     _cameraScale = 1.0;
-    _camera = null;
-    _locationObject = Location();
-    initLocation();
-  }
-
-  initLocation() async {
-    var currentLocation = await _locationObject.getLocation;
-    setState(() {
-      _camera = Camera(
-          LatLng(currentLocation["latitude"], currentLocation["longitude"]),
-          12);
-      _mapPins.add(MapPin(
-        LatLng(currentLocation["latitude"], currentLocation["longitude"]),
-        color: Colors.red,
-      ));
-    });
+    // TODO: initial camera should be at current location
+    _camera = Camera(
+        LatLng(this.widget.currentLocation["latitude"],
+            this.widget.currentLocation["longitude"]),
+        12);
   }
 
   // Build the map tiles. For now, build a NxM square of tiles.
@@ -97,12 +80,11 @@ class _MapWidgetState extends State<MapWidget> {
 
     // Round to nearest upper odd number. So we only have, for example
     // 3x3 grids or 3x5 grids or 1x3...
-    // TODO: Having the gestureZoom there kinda slows-down zooming out. Maybe caching will fix this?
     // TODO: Cache images already downloaded
-    int numXNeeded = (constraints.maxWidth / _cameraScale / 256).ceil();
+    int numXNeeded = (constraints.maxWidth / _cameraScale / 256).ceil() + 1;
     numXNeeded = numXNeeded % 2 == 0 ? numXNeeded + 1 : numXNeeded;
     numXNeeded = numXNeeded == 1 ? 3 : numXNeeded;
-    int numYNeeded = (constraints.maxHeight / _cameraScale / 256).ceil();
+    int numYNeeded = (constraints.maxHeight / _cameraScale / 256).ceil() + 1;
     numYNeeded = numYNeeded % 2 == 0 ? numYNeeded + 1 : numYNeeded;
     numYNeeded = numYNeeded == 1 ? 3 : numYNeeded;
 
@@ -154,7 +136,7 @@ class _MapWidgetState extends State<MapWidget> {
       double centerX, double centerY, BoxConstraints constraints) {
     List<Widget> pins = [];
 
-    (_mapPins ?? []).forEach((pin) {
+    (this.widget.mapPins ?? []).forEach((pin) {
       double x = pin.getX(_camera.zoomLevel);
       double y = pin.getY(_camera.zoomLevel);
 
