@@ -8,6 +8,7 @@ import 'pages/map/mapPage.dart';
 import 'pages/settings/settingsPage.dart';
 
 void main() {
+  SystemChrome.setEnabledSystemUIOverlays([]);
   SystemChrome
       .setPreferredOrientations([DeviceOrientation.portraitUp]).then((_) {
     runApp(new MyApp());
@@ -45,13 +46,6 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: null,
         tooltip: "Upload All",
         key: Key("upload"), // having a different key forces animations
-      );
-    } else if (index == 1) {
-      return FloatingActionButton(
-        child: Icon(Icons.my_location),
-        onPressed: null,
-        tooltip: "Current location",
-        key: Key("location"), // having a different key forces ze animations
       );
     } else {
       return null;
