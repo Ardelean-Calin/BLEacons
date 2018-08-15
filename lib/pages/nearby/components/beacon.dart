@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:charts_flutter/flutter.dart' as charts;
 
 import 'airquality.dart';
 import 'dataTag.dart';
@@ -37,16 +36,16 @@ class _BeaconCardState extends State<BeaconCard> {
     return Card(
       elevation: 2.0,
       margin: EdgeInsets.all(10.0),
-      child: new Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                showChart = !showChart;
-              });
-            },
-            child: ListTile(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            showChart = !showChart;
+          });
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
               trailing: AirQualityIndex(Random().nextInt(500)),
               // isThreeLine: true,
               title: Container(
@@ -96,46 +95,46 @@ class _BeaconCardState extends State<BeaconCard> {
                 ],
               ),
             ),
-          ),
-          Divider(
-            color: Color.fromARGB(0, 0, 0, 0),
-          ),
-          Container(
-              margin: EdgeInsets.only(left: 10.0, right: 10.0, bottom: 10.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: <Widget>[
-                  DataTag(
-                    Icons.ac_unit,
-                    "25 °C",
-                    iconColor: Theme.of(context).primaryColor,
-                  ),
-                  DataTag(
-                    Icons.opacity,
-                    "78%",
-                    iconColor: Theme.of(context).primaryColor,
-                  ),
-                  DataTag(
-                    Icons.cloud,
-                    " 101 kPa",
-                    iconColor: Theme.of(context).primaryColor,
-                  ),
-                  DataTag(
-                    Icons.battery_charging_full,
-                    "53%",
-                    iconColor: Theme.of(context).primaryColor,
-                  ),
-                ],
-              )),
-          // Chart here
-          showChart
-              ? Container(
-                  height: 200.0,
-                  margin: EdgeInsets.all(10.0),
-                  child: SimpleLineChart.withSampleData(),
-                )
-              : Container()
-        ],
+            Divider(
+              color: Color.fromARGB(0, 0, 0, 0),
+            ),
+            Container(
+                margin: EdgeInsets.only(left: 10.0, right: 10.0, bottom: 10.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: <Widget>[
+                    DataTag(
+                      Icons.ac_unit,
+                      "25 °C",
+                      iconColor: Theme.of(context).primaryColor,
+                    ),
+                    DataTag(
+                      Icons.opacity,
+                      "78%",
+                      iconColor: Theme.of(context).primaryColor,
+                    ),
+                    DataTag(
+                      Icons.cloud,
+                      " 101 kPa",
+                      iconColor: Theme.of(context).primaryColor,
+                    ),
+                    DataTag(
+                      Icons.battery_charging_full,
+                      "53%",
+                      iconColor: Theme.of(context).primaryColor,
+                    ),
+                  ],
+                )),
+            // Chart here
+            showChart
+                ? Container(
+                    height: 200.0,
+                    margin: EdgeInsets.all(10.0),
+                    child: SimpleLineChart.withSampleData(),
+                  )
+                : Container()
+          ],
+        ),
       ),
     );
   }
