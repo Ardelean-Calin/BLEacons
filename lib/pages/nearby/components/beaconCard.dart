@@ -64,35 +64,23 @@ class _BeaconCardState extends State<BeaconCard> {
               ),
               // isThreeLine: true,
               title: Container(
-                  margin: EdgeInsets.only(bottom: 3.0),
-                  child: RichText(
-                      text: TextSpan(
-                          text: '0x',
-                          style: TextStyle(
-                              fontFamily: "IBM Plex Sans",
-                              fontSize: 28.0,
-                              fontWeight: FontWeight.w600,
-                              color: Color.fromARGB(50, 0, 0, 0)),
-                          children: [
-                        TextSpan(
-                          text: widget.beaconObject.id
-                              .toRadixString(16)
-                              .toUpperCase()
-                              .padLeft(6, '0'),
-                          // overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 24.0,
-                              color: Colors.black,
-                              fontFamily: "IBM Plex Sans",
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ]))),
+                margin: EdgeInsets.only(bottom: 3.0),
+                child: Text(
+                  widget.beaconObject.id,
+                  // overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 22.0,
+                      color: Colors.black,
+                      fontFamily: "IBM Plex Sans",
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   LabelText(
                     label: "Last upload: ",
-                    text: "~ 1d ago (TODO)",
+                    text: "~1s ago",
                   ),
                   Container(
                     height: 1.0,

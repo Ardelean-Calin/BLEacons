@@ -1,27 +1,40 @@
 import 'latlng.dart';
 
 class Beacon {
-  int id;
+  String id;
   LatLng coordinates;
   String address;
-  int lastUploadTime;
+  String lastUploadTime;
   double lastBatteryLevel;
   List<dynamic> aqiValues;
   List<dynamic> temperatureValues;
   List<dynamic> humidityValues;
   List<dynamic> pressureValues;
 
-  Beacon({beaconData}) {
+  factory Beacon.fromData({beaconData}) {
+    Beacon beacon = Beacon();
+
     var location = beaconData["location"];
 
-    id = beaconData["id"];
-    coordinates = LatLng(location["latitude"], location["longitude"]);
-    address = location["address"];
-    lastUploadTime = beaconData["lastUpdate"];
-    lastBatteryLevel = beaconData["lastBatteryLevel"];
-    aqiValues = beaconData["aqiValues"];
-    temperatureValues = beaconData["temperatureValues"];
-    humidityValues = beaconData["humidityValues"];
-    pressureValues = beaconData["pressureValues"];
+    beacon.id = beaconData["id"];
+    beacon.coordinates = LatLng(location["latitude"], location["longitude"]);
+    beacon.address = location["address"];
+    beacon.lastUploadTime = beaconData["lastUpdate"];
+    beacon.lastBatteryLevel = beaconData["lastBatteryLevel"];
+    beacon.aqiValues = beaconData["aqiValues"];
+    beacon.temperatureValues = beaconData["temperatureValues"];
+    beacon.humidityValues = beaconData["humidityValues"];
+    beacon.pressureValues = beaconData["pressureValues"];
+
+    return beacon;
+  }
+
+  Beacon() {
+    id = "";
+    address = "";
+    aqiValues = [];
+    temperatureValues = [];
+    humidityValues = [];
+    pressureValues = [];
   }
 }

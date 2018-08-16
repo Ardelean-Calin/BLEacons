@@ -20,7 +20,7 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   List<Beacon> beacons;
   var _currentLocation;
-  int _selectedBeacon;
+  String _selectedBeacon;
 
   _getBeacons() async {
     String result = (await http.get(databaseURL +
@@ -28,7 +28,7 @@ class _MapPageState extends State<MapPage> {
         .body;
 
     List<Beacon> _beacons = jsonDecode(result)["data"]["beacons"]
-        .map<Beacon>((beacon) => Beacon(beaconData: beacon))
+        .map<Beacon>((beacon) => Beacon.fromData(beaconData: beacon))
         .toList();
 
     // Update the beacons
