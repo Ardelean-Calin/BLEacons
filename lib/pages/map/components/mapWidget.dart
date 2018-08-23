@@ -256,6 +256,11 @@ class _MapWidgetState extends State<MapWidget> {
               _prevX = null;
               _prevY = null;
               _prevScale = null;
+              if (_camera.zoomLevel == 19 && _cameraScale > 1.0) {
+                setState(() {
+                  _cameraScale = 1.0;
+                });
+              }
             },
             onDoubleTap: () {
               setState(() {
@@ -270,6 +275,7 @@ class _MapWidgetState extends State<MapWidget> {
                 _camera.latitude = _currentLocation.latitude;
                 _camera.longitude = _currentLocation.longitude;
                 _camera.zoomLevel = 12;
+                _cameraScale = 1.0;
               });
             },
           ),

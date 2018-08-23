@@ -8,9 +8,10 @@ import 'package:bleacons/classes/beacon.dart';
 import 'components/mapWidget.dart';
 import 'package:bleacons/classes/latlng.dart';
 import 'package:location/location.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 
-const databaseURL = "<YOUR_URL_HERE>";
+const databaseURL = "http://bleacons.ddns.net/graphql";
 
 class MapPage extends StatefulWidget {
   @override
@@ -23,9 +24,20 @@ class _MapPageState extends State<MapPage> {
   String _selectedBeacon;
 
   _getBeacons() async {
+    Fluttertoast.showToast(
+      msg: "Syncing beacon data...",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      timeInSecForIos: 1,
+    );
     String result = (await http.get(databaseURL +
-            "?query={beacons{id,location{latitude,longitude,address},lastUpdate,lastBatteryLevel,aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
+            "?query={beacons{id,location{latitude,longitude},lastUpdate,lastBatteryLevel,aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
         .body;
+
+    // TODO: Smarter downloading of beacon basic data first, then the remaining data
+    // String result = (await http.get(databaseURL +
+    //     "?query={beacons{id,location{latitude,longitude},lastUpdate,lastBatteryLevel}}"))
+    // .body;
 
     List<Beacon> _beacons = jsonDecode(result)["data"]["beacons"]
         .map<Beacon>((beacon) => Beacon.fromData(beaconData: beacon))
@@ -51,7 +63,16 @@ class _MapPageState extends State<MapPage> {
   }
 
   _buildMarkers() {
-    final List<MapPin> beaconsPins = beacons
+    final List<MapPin> beaconsPins = [];
+
+    if (_currentLocation != null)
+      beaconsPins.add(MapPin(
+        LatLng(_currentLocation["latitude"], _currentLocation["longitude"]),
+        icon: Icons.person_pin_circle,
+        color: Colors.red,
+      ));
+
+    beaconsPins.addAll(beacons
         .map<MapPin>((Beacon beacon) => MapPin(
               LatLng(beacon.coordinates.latitude, beacon.coordinates.longitude),
               icon: Icons.place,
@@ -71,14 +92,7 @@ class _MapPageState extends State<MapPage> {
                   });
               },
             ))
-        .toList();
-
-    if (_currentLocation != null)
-      beaconsPins.add(MapPin(
-        LatLng(_currentLocation["latitude"], _currentLocation["longitude"]),
-        icon: Icons.person_pin_circle,
-        color: Colors.red,
-      ));
+        .toList());
 
     return beaconsPins;
   }

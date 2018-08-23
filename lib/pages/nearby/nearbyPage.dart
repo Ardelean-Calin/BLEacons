@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:bleacons/classes/beacon.dart';
 import 'package:bleacons/classes/latlng.dart';
+import 'package:bleacons/pages/nearby/components/chart.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:location/location.dart';
 import 'components/beaconCard.dart';
 import 'dart:convert';
@@ -18,6 +20,8 @@ class _NearbyPageState extends State<NearbyPage> {
   Map<String, Beacon> _beacons;
   FlutterBlue _flutterBlue = FlutterBlue.instance;
   StreamSubscription _scanSubscription;
+  Timer _cleanupTimer;
+  Map<String, double> _currentLocation;
 
   @override
   void initState() {
@@ -26,12 +30,31 @@ class _NearbyPageState extends State<NearbyPage> {
     _beacons = {};
     _scanSubscription?.cancel();
     _getNearbyBeacons();
+    // _startCleanupTimer();
   }
 
   @override
   void dispose() {
     super.dispose();
     _scanSubscription?.cancel();
+    _cleanupTimer.cancel();
+  }
+
+  // If a given beacon hasn't been updated in the last 10 seconds it's no longer in range
+  void _startCleanupTimer() {
+    _cleanupTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      List<String> toRemove = [];
+      _beacons.forEach((String key, Beacon beacon) {
+        if (DateTime.now().difference(DateTime
+                .fromMillisecondsSinceEpoch(beacon.lastUploadTime.toInt())) >
+            Duration(seconds: 10)) {
+          toRemove.add(key);
+        }
+      });
+      setState(() {
+        toRemove.forEach((key) => _beacons.remove(key));
+      });
+    });
   }
 
   _getBeaconFromInternet(String id) async {
@@ -39,7 +62,7 @@ class _NearbyPageState extends State<NearbyPage> {
 
     try {
       var response = await http.get(
-          "<YOUR_URL_HERE>?query={beacon(id:\"$id\"){location{latitude,longitude,address},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}");
+          "http://bleacons.ddns.net/graphql?query={beacon(id:\"$id\"){location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}");
       beacon = json.decode(response.body)["data"]["beacon"];
     } catch (e) {
       beacon = null;
@@ -54,8 +77,13 @@ class _NearbyPageState extends State<NearbyPage> {
       location = await (new Location()).getLocation;
     } catch (e) {
       // No location, no nothing
-      return;
+      location = null;
     }
+
+    setState(() {
+      _currentLocation = location;
+    });
+
     _scanSubscription =
         _flutterBlue.scan(scanMode: ScanMode.lowLatency).listen((result) async {
       String id = result.device.id.id;
@@ -64,33 +92,75 @@ class _NearbyPageState extends State<NearbyPage> {
         Beacon beacon = _createBeaconFromManufacturer(
             id, result.advertisementData.manufacturerData.values.toList()[0]);
 
-        var beaconJSON = await _getBeaconFromInternet(id);
-        // Daca exista acest beacon pe net
-        if (beaconJSON != null) {
-          beacon.aqiValues =
-              beaconJSON["aqiValues"].expand(beacon.aqiValues[0]);
-          beacon.temperatureValues = beaconJSON["temperatureValues"]
-              .expand(beacon.temperatureValues[0]);
-          beacon.humidityValues =
-              beaconJSON["humidityValues"].expand(beacon.humidityValues[0]);
-          beacon.pressureValues =
-              beaconJSON["pressureValues"].expand(beacon.pressureValues[0]);
-          beacon.address = beaconJSON["location"]["address"];
-          beacon.coordinates = LatLng(beaconJSON["location"]["latitude"],
-              beaconJSON["location"]["longitude"]);
-        } else {
-          beacon.address = "Str. Somesului Nr. 14";
-          beacon.coordinates =
-              LatLng(location["latitude"], location["longitude"]);
-          // TODO: Upload beacon
+        // Beacon already exists locally => add data and update to cloud
+        if (_beacons.containsKey(beacon.id)) {
+          _beacons[id].lastUploadTime =
+              DateTime.now().millisecondsSinceEpoch.toDouble();
+          _beacons[id].aqiValues.addAll(beacon.aqiValues);
+          _beacons[id].temperatureValues.addAll(beacon.temperatureValues);
+          _beacons[id].humidityValues.addAll(beacon.humidityValues);
+          _beacons[id].pressureValues.addAll(beacon.pressureValues);
 
+          // Remote update beacon
+          http.post("http://bleacons.ddns.net/graphql",
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+              body: jsonEncode({
+                "query":
+                    "mutation UpdateBeacon(\$id: String, \$lastUpdate: Float, \$lastBatteryLevel: Float, \$aqiValue: DataPointInput, \$temperatureValue: DataPointInput, \$humidityValue: DataPointInput, \$pressureValue: DataPointInput ){updateBeacon(aqiValue: \$aqiValue, id: \$id, humidityValue: \$humidityValue, temperatureValue: \$temperatureValue, pressureValue: \$pressureValue, lastUpdate: \$lastUpdate, lastBatteryLevel: \$lastBatteryLevel){ok}}",
+                "variables": {
+                  "id": _beacons[id].id,
+                  "lastUpdate": beacon.lastUploadTime,
+                  "lastBatteryLevel": beacon.lastBatteryLevel,
+                  "aqiValue": beacon.aqiValues[0].toMap(),
+                  "temperatureValue": beacon.temperatureValues[0].toMap(),
+                  "pressureValue": beacon.pressureValues[0].toMap(),
+                  "humidityValue": beacon.humidityValues[0].toMap(),
+                }
+              }));
+        } else {
+          print("tick");
+          // Try and get a beacon from the internet first
+          // TODO: This takes a lot of time.
+          var existingBeacon = await _getBeaconFromInternet(id);
+          print("tock");
+          // If there is no beacon with this ID, create one
+          if (existingBeacon == null) {
+            http.post("http://bleacons.ddns.net/graphql",
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                },
+                body: jsonEncode({
+                  "query":
+                      "mutation CreateBeacon(\$id: String, \$location: LocationInput){createBeacon(id:\$id, location:\$location){ok}}",
+                  "variables": {
+                    "id": id,
+                    "location": {
+                      "longitude": location["longitude"],
+                      "latitude": location["latitude"]
+                    }
+                  }
+                }));
+            // Then add it to the current beacons
+            _beacons[id] = beacon;
+          } else {
+            // If there is a beacon with this ID already, just add it and it's data to our
+            // local beacons list
+            _beacons[id] = Beacon.fromData(beaconData: existingBeacon);
+            _beacons[id].id = id;
+          }
+
+          _beacons[id].lastUploadTime = beacon.lastUploadTime;
+          _beacons[id].lastBatteryLevel = beacon.lastBatteryLevel;
         }
 
-        // http.post("<YOUR_URL_HERE>", body: JSON.encode(bea))
+        // Check if beacon exists
 
-        setState(() {
-          _beacons[id] = beacon;
-        });
+        // http.post("http://localhost:4000/graphql", body: JSON.encode(bea))
+        if (this.mounted) setState(() {});
       }
     });
   }
@@ -109,21 +179,19 @@ class _NearbyPageState extends State<NearbyPage> {
     Beacon beacon = Beacon();
     beacon.id = id;
     beacon.lastBatteryLevel = (batteryVoltage / 3.7) * 100;
-    beacon.lastUploadTime = now.millisecondsSinceEpoch.toString();
+    beacon.lastUploadTime = now.millisecondsSinceEpoch.toDouble();
 
-    beacon.aqiValues.add({
-      "value": iaq.toDouble(),
-      "time": now.millisecondsSinceEpoch.toString()
-    });
-
-    beacon.temperatureValues.add(
-        {"value": temperature, "time": now.millisecondsSinceEpoch.toString()});
-
-    beacon.humidityValues.add(
-        {"value": humidity, "time": now.millisecondsSinceEpoch.toString()});
-
-    beacon.pressureValues.add(
-        {"value": pressure, "time": now.millisecondsSinceEpoch.toString()});
+    beacon.aqiValues.add(DataPoint(
+        value: iaq.toDouble(), time: now.millisecondsSinceEpoch.toDouble()));
+    beacon.temperatureValues.add(DataPoint(
+        value: temperature.toDouble(),
+        time: now.millisecondsSinceEpoch.toDouble()));
+    beacon.humidityValues.add(DataPoint(
+        value: humidity.toDouble(),
+        time: now.millisecondsSinceEpoch.toDouble()));
+    beacon.pressureValues.add(DataPoint(
+        value: pressure.toDouble(),
+        time: now.millisecondsSinceEpoch.toDouble()));
 
     return beacon;
   }
@@ -135,6 +203,32 @@ class _NearbyPageState extends State<NearbyPage> {
             children: _beacons.values
                 .map((beacon) => BeaconCard(
                       beaconObject: beacon,
+                      resetLocationCallback: () => setState(() {
+                            Fluttertoast.showToast(
+                              msg: "Beacon location set to current location",
+                              toastLength: Toast.LENGTH_LONG,
+                              gravity: ToastGravity.CENTER,
+                              timeInSecForIos: 1,
+                            );
+
+                            http.post("http://bleacons.ddns.net/graphql",
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Accept': 'application/json',
+                                },
+                                body: jsonEncode({
+                                  "query":
+                                      "mutation UpdateLocation(\$id: String, \$location: LocationInput){updateLocation(id:\$id, location:\$location){ok}}",
+                                  "variables": {
+                                    "id": beacon.id,
+                                    "location": {
+                                      "longitude":
+                                          _currentLocation["longitude"],
+                                      "latitude": _currentLocation["latitude"]
+                                    }
+                                  }
+                                }));
+                          }),
                     ))
                 .toList(),
           )

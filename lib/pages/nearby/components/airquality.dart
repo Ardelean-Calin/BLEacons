@@ -27,7 +27,7 @@ class AirQualityIndex extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       child: Container(
-        padding: EdgeInsets.all(3.0),
+        padding: EdgeInsets.only(top: 20.0),
         child: Column(
           children: <Widget>[
             Text(

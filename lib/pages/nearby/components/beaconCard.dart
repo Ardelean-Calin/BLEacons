@@ -1,27 +1,26 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:bleacons/classes/beacon.dart';
+import 'package:intl/intl.dart';
 
 import 'airquality.dart';
 import 'dataTag.dart';
 import 'labelText.dart';
-import 'test.dart';
+import 'package:bleacons/pages/nearby/components/chart.dart';
 
 class BeaconCard extends StatefulWidget {
   Beacon beaconObject;
+  Function resetLocationCallback;
 
-  BeaconCard({@required this.beaconObject});
+  BeaconCard({@required this.beaconObject, this.resetLocationCallback});
 
   @override
   _BeaconCardState createState() => _BeaconCardState();
 }
 
 class _BeaconCardState extends State<BeaconCard> {
-  Beacon beaconObject;
-
   // Index to the _tags list
   int _dataToShow;
+  bool _showChart;
 
   static const List<String> _tags = [
     "aqi",
@@ -34,11 +33,49 @@ class _BeaconCardState extends State<BeaconCard> {
   void initState() {
     super.initState();
     _dataToShow = null;
+    _showChart = true;
     // beaconObject = widget.beaconObject;
   }
 
   @override
   Widget build(BuildContext context) {
+    // Depending on _dataToShow, show different data and put different legends
+    // var dataToShow =
+    List<DataPoint> _data;
+    String _yLabel = "Air Quality Index";
+    IconData _chartIcon = Icons.child_friendly;
+
+    int _dataLength = widget.beaconObject.aqiValues.length;
+    if (_dataLength == 0) {
+      _dataLength = 1;
+    }
+
+    switch (_dataToShow) {
+      case 1:
+        _data = widget.beaconObject.temperatureValues;
+        _yLabel = "Temperature";
+        _chartIcon = Icons.ac_unit;
+        break;
+      case 2:
+        _data = widget.beaconObject.humidityValues;
+        _yLabel = "Humidity";
+        _chartIcon = Icons.opacity;
+        break;
+      case 3:
+        _data = widget.beaconObject.pressureValues;
+        _yLabel = "Pressure";
+        _chartIcon = Icons.cloud_queue;
+        break;
+      case 0:
+      default:
+        _data = widget.beaconObject.aqiValues;
+        _yLabel = "Air Quality Index";
+        _chartIcon = Icons.toys;
+    }
+
+    DateTime _lastUpload = DateTime
+        .fromMillisecondsSinceEpoch(widget.beaconObject.lastUploadTime.toInt());
+
     return Card(
       key: Key(widget.beaconObject.id.toString()),
       elevation: 2.0,
@@ -49,15 +86,19 @@ class _BeaconCardState extends State<BeaconCard> {
           InkWell(
             onTap: () {
               setState(() {
-                _dataToShow = _dataToShow == null ? 0 : null;
+                _showChart = !_showChart;
               });
             },
+            onLongPress: widget.resetLocationCallback,
             child: ListTile(
               trailing: AirQualityIndex(
-                widget.beaconObject.aqiValues[0]["value"].toInt(),
-                selected: _dataToShow == 0,
+                _dataLength != 0
+                    ? widget.beaconObject.aqiValues[_dataLength - 1].value
+                        .toInt()
+                    : null,
                 onTap: () {
                   setState(() {
+                    _showChart = true;
                     _dataToShow = _dataToShow == 0 ? null : 0;
                   });
                 },
@@ -78,21 +119,13 @@ class _BeaconCardState extends State<BeaconCard> {
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  LabelText(
-                    label: "Last upload: ",
-                    text: "~1s ago",
-                  ),
-                  Container(
-                    height: 1.0,
+                  Text(
+                    "Last update: ",
+                    style: TextStyle(fontWeight: FontWeight.w400),
                   ),
                   Text(
-                    widget.beaconObject.address,
-                    style: TextStyle(
-                        fontFamily: "IBM Plex Sans",
-                        fontSize: 12.0,
-                        fontStyle: FontStyle.italic,
-                        fontWeight: FontWeight.w600,
-                        color: Color.fromARGB(80, 0, 0, 0)),
+                    DateFormat("dd-MMM  H:mm:ss a").format(_lastUpload),
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   )
                 ],
               ),
@@ -108,40 +141,43 @@ class _BeaconCardState extends State<BeaconCard> {
                 children: <Widget>[
                   DataTag(
                     Icons.ac_unit,
-                    "${widget.beaconObject.temperatureValues[0]["value"].toStringAsFixed(1)}°C",
+                    "${widget.beaconObject.temperatureValues[_dataLength-1].value.toStringAsFixed(1)}°C",
                     iconColor: Theme.of(context).primaryColor,
                     selected: _dataToShow == 1,
                     onTap: () {
                       setState(() {
+                        _showChart = true;
                         _dataToShow = _dataToShow == 1 ? null : 1;
                       });
                     },
                   ),
                   DataTag(
                     Icons.opacity,
-                    "${widget.beaconObject.humidityValues[0]["value"].toStringAsFixed(1)}%",
+                    "${widget.beaconObject.humidityValues[_dataLength-1].value.toStringAsFixed(1)}%",
                     iconColor: Theme.of(context).primaryColor,
                     selected: _dataToShow == 2,
                     onTap: () {
                       setState(() {
+                        _showChart = true;
                         _dataToShow = _dataToShow == 2 ? null : 2;
                       });
                     },
                   ),
                   DataTag(
-                    Icons.cloud,
-                    " ${widget.beaconObject.pressureValues[0]["value"].toStringAsFixed(1)}kPa",
+                    Icons.cloud_queue,
+                    " ${widget.beaconObject.pressureValues[_dataLength-1].value.toStringAsFixed(1)}kPa",
                     iconColor: Theme.of(context).primaryColor,
                     selected: _dataToShow == 3,
                     onTap: () {
                       setState(() {
+                        _showChart = true;
                         _dataToShow = _dataToShow == 3 ? null : 3;
                       });
                     },
                   ),
                   DataTag(
                     Icons.battery_charging_full,
-                    "${widget.beaconObject.lastBatteryLevel.toInt()}%",
+                    "${widget.beaconObject.lastBatteryLevel?.toInt()}%",
                     iconColor: Theme.of(context).primaryColor,
                   ),
                 ],
@@ -152,13 +188,35 @@ class _BeaconCardState extends State<BeaconCard> {
             firstChild: Container(
               height: 200.0,
               margin: EdgeInsets.all(10.0),
-              child: SimpleLineChart.withSampleData(),
+              child: SimpleLineChart.withData(
+                _data,
+                animate: false,
+                label: _yLabel,
+                dataIcon: _chartIcon,
+              ),
             ),
             secondChild: Container(),
-            crossFadeState: _dataToShow != null
+            crossFadeState: _showChart
                 ? CrossFadeState.showFirst
                 : CrossFadeState.showSecond,
-          )
+          ),
+          GestureDetector(
+              child: Container(
+                margin: EdgeInsets.only(bottom: 5.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20.0),
+                  color: Color.fromARGB(10, 0, 0, 0),
+                ),
+                child: Icon(
+                  _showChart
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              onTap: () => setState(() {
+                    _showChart = !_showChart;
+                  }))
         ],
       ),
     );

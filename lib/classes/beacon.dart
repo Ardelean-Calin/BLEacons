@@ -1,37 +1,44 @@
+import 'package:bleacons/pages/nearby/components/chart.dart';
+
 import 'latlng.dart';
 
 class Beacon {
   String id;
   LatLng coordinates;
-  String address;
-  String lastUploadTime;
+  double lastUploadTime;
   double lastBatteryLevel;
-  List<dynamic> aqiValues;
-  List<dynamic> temperatureValues;
-  List<dynamic> humidityValues;
-  List<dynamic> pressureValues;
+  List<DataPoint> aqiValues;
+  List<DataPoint> temperatureValues;
+  List<DataPoint> humidityValues;
+  List<DataPoint> pressureValues;
 
-  factory Beacon.fromData({beaconData}) {
-    Beacon beacon = Beacon();
-
+  Beacon.fromData({beaconData}) {
     var location = beaconData["location"];
 
-    beacon.id = beaconData["id"];
-    beacon.coordinates = LatLng(location["latitude"], location["longitude"]);
-    beacon.address = location["address"];
-    beacon.lastUploadTime = beaconData["lastUpdate"];
-    beacon.lastBatteryLevel = beaconData["lastBatteryLevel"];
-    beacon.aqiValues = beaconData["aqiValues"];
-    beacon.temperatureValues = beaconData["temperatureValues"];
-    beacon.humidityValues = beaconData["humidityValues"];
-    beacon.pressureValues = beaconData["pressureValues"];
-
-    return beacon;
+    id = beaconData["id"];
+    coordinates = LatLng(location["latitude"], location["longitude"]);
+    lastUploadTime = beaconData["lastUpdate"];
+    lastBatteryLevel = beaconData["lastBatteryLevel"];
+    aqiValues = (beaconData["aqiValues"] ?? [])
+        .map<DataPoint>(
+            (dict) => DataPoint(time: dict["time"], value: dict["value"]))
+        .toList();
+    temperatureValues = (beaconData["temperatureValues"] ?? [])
+        .map<DataPoint>(
+            (dict) => DataPoint(time: dict["time"], value: dict["value"]))
+        .toList();
+    humidityValues = (beaconData["humidityValues"] ?? [])
+        .map<DataPoint>(
+            (dict) => DataPoint(time: dict["time"], value: dict["value"]))
+        .toList();
+    pressureValues = (beaconData["pressureValues"] ?? [])
+        .map<DataPoint>(
+            (dict) => DataPoint(time: dict["time"], value: dict["value"]))
+        .toList();
   }
 
   Beacon() {
     id = "";
-    address = "";
     aqiValues = [];
     temperatureValues = [];
     humidityValues = [];
