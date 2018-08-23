@@ -11,7 +11,7 @@ import 'package:location/location.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 
-const databaseURL = "http://bleacons.ddns.net/graphql";
+const databaseURL = "<YOUR_URL_HERE>graphql";
 
 class MapPage extends StatefulWidget {
   @override
@@ -33,11 +33,6 @@ class _MapPageState extends State<MapPage> {
     String result = (await http.get(databaseURL +
             "?query={beacons{id,location{latitude,longitude},lastUpdate,lastBatteryLevel,aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
         .body;
-
-    // TODO: Smarter downloading of beacon basic data first, then the remaining data
-    // String result = (await http.get(databaseURL +
-    //     "?query={beacons{id,location{latitude,longitude},lastUpdate,lastBatteryLevel}}"))
-    // .body;
 
     List<Beacon> _beacons = jsonDecode(result)["data"]["beacons"]
         .map<Beacon>((beacon) => Beacon.fromData(beaconData: beacon))
@@ -119,6 +114,20 @@ class _MapPageState extends State<MapPage> {
     _getCurrentLocation();
   }
 
+  void _downloadDataForBeacon(id) async {
+    String result = (await http.get(
+            "<YOUR_URL_HERE>graphql?query={beacon(id:\"$id\", restrictData: false){id,lastUpdate,lastBatteryLevel,location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
+        .body;
+
+    var beaconData = jsonDecode(result)["data"]["beacon"];
+
+    if (this.mounted)
+      setState(() {
+        int index = beacons.indexWhere((beacon) => beacon.id == id);
+        beacons[index] = Beacon.fromData(beaconData: beaconData);
+      });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -134,8 +143,10 @@ class _MapPageState extends State<MapPage> {
           secondChild: _selectedBeacon == null
               ? Container()
               : BeaconCard(
+                  key: Key(_selectedBeacon),
                   beaconObject: beacons
                       .singleWhere((beacon) => beacon.id == _selectedBeacon),
+                  downloadDataForBeacon: _downloadDataForBeacon,
                 ),
           crossFadeState: _selectedBeacon == null
               ? CrossFadeState.showFirst

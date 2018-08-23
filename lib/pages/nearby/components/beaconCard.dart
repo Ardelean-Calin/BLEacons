@@ -9,9 +9,15 @@ import 'package:bleacons/pages/nearby/components/chart.dart';
 
 class BeaconCard extends StatefulWidget {
   Beacon beaconObject;
+  Key key;
   Function resetLocationCallback;
+  Function downloadDataForBeacon;
 
-  BeaconCard({@required this.beaconObject, this.resetLocationCallback});
+  BeaconCard(
+      {@required this.beaconObject,
+      this.key,
+      this.resetLocationCallback,
+      this.downloadDataForBeacon});
 
   @override
   _BeaconCardState createState() => _BeaconCardState();
@@ -21,20 +27,19 @@ class _BeaconCardState extends State<BeaconCard> {
   // Index to the _tags list
   int _dataToShow;
   bool _showChart;
-
-  static const List<String> _tags = [
-    "aqi",
-    "temperature",
-    "humidity",
-    "pressure"
-  ];
+  bool _renderChart;
+  // Remember wether more data was requested
+  bool _moreDataRequested;
+  bool _dataRequestSent;
 
   @override
   void initState() {
     super.initState();
     _dataToShow = null;
     _showChart = true;
-    // beaconObject = widget.beaconObject;
+    _renderChart = false;
+    _moreDataRequested = false;
+    _dataRequestSent = false;
   }
 
   @override
@@ -44,6 +49,13 @@ class _BeaconCardState extends State<BeaconCard> {
     List<DataPoint> _data;
     String _yLabel = "Air Quality Index";
     IconData _chartIcon = Icons.child_friendly;
+    _renderChart = widget.beaconObject.aqiValues.length >= 2;
+    // On the first show chart request we request the rest of the data
+    _moreDataRequested = _moreDataRequested || _showChart;
+    if (_moreDataRequested && !_dataRequestSent) {
+      widget.downloadDataForBeacon(widget.beaconObject.id);
+      _dataRequestSent = true;
+    }
 
     int _dataLength = widget.beaconObject.aqiValues.length;
     if (_dataLength == 0) {
@@ -188,12 +200,27 @@ class _BeaconCardState extends State<BeaconCard> {
             firstChild: Container(
               height: 200.0,
               margin: EdgeInsets.all(10.0),
-              child: SimpleLineChart.withData(
-                _data,
-                animate: false,
-                label: _yLabel,
-                dataIcon: _chartIcon,
-              ),
+              child: _renderChart
+                  ? SimpleLineChart.withData(
+                      _data,
+                      animate: false,
+                      label: _yLabel,
+                      dataIcon: _chartIcon,
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Container(
+                          height: 48.0,
+                          width: 48.0,
+                          child: CircularProgressIndicator(),
+                        ),
+                        Container(
+                          height: 10.0,
+                        ),
+                        Text("Downloading beacon data"),
+                      ],
+                    ),
             ),
             secondChild: Container(),
             crossFadeState: _showChart

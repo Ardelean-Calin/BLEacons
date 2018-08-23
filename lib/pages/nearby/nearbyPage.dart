@@ -37,7 +37,7 @@ class _NearbyPageState extends State<NearbyPage> {
   void dispose() {
     super.dispose();
     _scanSubscription?.cancel();
-    _cleanupTimer.cancel();
+    _cleanupTimer?.cancel();
   }
 
   // If a given beacon hasn't been updated in the last 10 seconds it's no longer in range
@@ -62,7 +62,7 @@ class _NearbyPageState extends State<NearbyPage> {
 
     try {
       var response = await http.get(
-          "http://bleacons.ddns.net/graphql?query={beacon(id:\"$id\"){location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}");
+          "<YOUR_URL_HERE>graphql?query={beacon(id:\"$id\"){location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}");
       beacon = json.decode(response.body)["data"]["beacon"];
     } catch (e) {
       beacon = null;
@@ -94,15 +94,14 @@ class _NearbyPageState extends State<NearbyPage> {
 
         // Beacon already exists locally => add data and update to cloud
         if (_beacons.containsKey(beacon.id)) {
-          _beacons[id].lastUploadTime =
-              DateTime.now().millisecondsSinceEpoch.toDouble();
+          _beacons[id].lastUploadTime = beacon.lastUploadTime;
           _beacons[id].aqiValues.addAll(beacon.aqiValues);
           _beacons[id].temperatureValues.addAll(beacon.temperatureValues);
           _beacons[id].humidityValues.addAll(beacon.humidityValues);
           _beacons[id].pressureValues.addAll(beacon.pressureValues);
 
           // Remote update beacon
-          http.post("http://bleacons.ddns.net/graphql",
+          http.post("<YOUR_URL_HERE>graphql",
               headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
@@ -121,14 +120,11 @@ class _NearbyPageState extends State<NearbyPage> {
                 }
               }));
         } else {
-          print("tick");
-          // Try and get a beacon from the internet first
-          // TODO: This takes a lot of time.
+          // Try and get a beacon from the internet first. Limited data only
           var existingBeacon = await _getBeaconFromInternet(id);
-          print("tock");
           // If there is no beacon with this ID, create one
           if (existingBeacon == null) {
-            http.post("http://bleacons.ddns.net/graphql",
+            http.post("<YOUR_URL_HERE>graphql",
                 headers: {
                   'Content-Type': 'application/json',
                   'Accept': 'application/json',
@@ -201,35 +197,80 @@ class _NearbyPageState extends State<NearbyPage> {
     return _beacons.length != 0
         ? ListView(
             children: _beacons.values
-                .map((beacon) => BeaconCard(
-                      beaconObject: beacon,
-                      resetLocationCallback: () => setState(() {
-                            Fluttertoast.showToast(
-                              msg: "Beacon location set to current location",
-                              toastLength: Toast.LENGTH_LONG,
-                              gravity: ToastGravity.CENTER,
-                              timeInSecForIos: 1,
-                            );
+                .map(
+                  (beacon) => BeaconCard(
+                        beaconObject: beacon,
+                        resetLocationCallback: () => setState(() {
+                              Fluttertoast.showToast(
+                                msg: "Beacon location set to current location",
+                                toastLength: Toast.LENGTH_LONG,
+                                gravity: ToastGravity.CENTER,
+                                timeInSecForIos: 1,
+                              );
 
-                            http.post("http://bleacons.ddns.net/graphql",
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                  'Accept': 'application/json',
-                                },
-                                body: jsonEncode({
-                                  "query":
-                                      "mutation UpdateLocation(\$id: String, \$location: LocationInput){updateLocation(id:\$id, location:\$location){ok}}",
-                                  "variables": {
-                                    "id": beacon.id,
-                                    "location": {
-                                      "longitude":
-                                          _currentLocation["longitude"],
-                                      "latitude": _currentLocation["latitude"]
+                              http.post("<YOUR_URL_HERE>graphql",
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                  },
+                                  body: jsonEncode({
+                                    "query":
+                                        "mutation UpdateLocation(\$id: String, \$location: LocationInput){updateLocation(id:\$id, location:\$location){ok}}",
+                                    "variables": {
+                                      "id": beacon.id,
+                                      "location": {
+                                        "longitude":
+                                            _currentLocation["longitude"],
+                                        "latitude": _currentLocation["latitude"]
+                                      }
                                     }
-                                  }
-                                }));
-                          }),
-                    ))
+                                  }));
+                            }),
+                        // Download remaining data for the beacon but only the last hour
+                        downloadDataForBeacon: (id) async {
+                          double stopTimestamp =
+                              DateTime.now().millisecondsSinceEpoch.toDouble();
+                          double startTimestamp = DateTime
+                              .now()
+                              .subtract(Duration(hours: 1))
+                              .millisecondsSinceEpoch
+                              .toDouble();
+
+                          String result = (await http.get(
+                                  "<YOUR_URL_HERE>graphql?query={beacon(id:\"$id\",restrictData:false,startTimestamp:$startTimestamp,stopTimestamp:$stopTimestamp){id,lastUpdate,lastBatteryLevel,location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
+                              .body;
+
+                          var beaconData = jsonDecode(result)["data"]["beacon"];
+
+                          Beacon tempBeacon =
+                              Beacon.fromData(beaconData: beaconData);
+
+                          if (this.mounted)
+                            setState(() {
+                              _beacons[id].aqiValues
+                                ..addAll(tempBeacon.aqiValues)
+                                ..sort((dp1, dp2) => dp1.time > dp2.time
+                                    ? 1
+                                    : dp1.time == dp2.time ? 0 : -1);
+                              _beacons[id].temperatureValues
+                                ..addAll(tempBeacon.temperatureValues)
+                                ..sort((dp1, dp2) => dp1.time > dp2.time
+                                    ? 1
+                                    : dp1.time == dp2.time ? 0 : -1);
+                              _beacons[id].humidityValues
+                                ..addAll(tempBeacon.humidityValues)
+                                ..sort((dp1, dp2) => dp1.time > dp2.time
+                                    ? 1
+                                    : dp1.time == dp2.time ? 0 : -1);
+                              _beacons[id].pressureValues
+                                ..addAll(tempBeacon.pressureValues)
+                                ..sort((dp1, dp2) => dp1.time > dp2.time
+                                    ? 1
+                                    : dp1.time == dp2.time ? 0 : -1);
+                            });
+                        },
+                      ),
+                )
                 .toList(),
           )
         : Container(
