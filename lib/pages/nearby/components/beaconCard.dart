@@ -62,28 +62,30 @@ class _BeaconCardState extends State<BeaconCard> {
       _dataLength = 1;
     }
 
-    switch (_dataToShow) {
-      case 1:
-        _data = widget.beaconObject.temperatureValues;
-        _yLabel = "Temperature";
-        _chartIcon = Icons.ac_unit;
-        break;
-      case 2:
-        _data = widget.beaconObject.humidityValues;
-        _yLabel = "Humidity";
-        _chartIcon = Icons.opacity;
-        break;
-      case 3:
-        _data = widget.beaconObject.pressureValues;
-        _yLabel = "Pressure";
-        _chartIcon = Icons.cloud_queue;
-        break;
-      case 0:
-      default:
-        _data = widget.beaconObject.aqiValues;
-        _yLabel = "Air Quality Index";
-        _chartIcon = Icons.toys;
-    }
+    setState(() {
+      switch (_dataToShow) {
+        case 1:
+          _data = widget.beaconObject.temperatureValues;
+          _yLabel = "Temperature";
+          _chartIcon = Icons.ac_unit;
+          break;
+        case 2:
+          _data = widget.beaconObject.humidityValues;
+          _yLabel = "Humidity";
+          _chartIcon = Icons.opacity;
+          break;
+        case 3:
+          _data = widget.beaconObject.pressureValues;
+          _yLabel = "Pressure";
+          _chartIcon = Icons.cloud_queue;
+          break;
+        case 0:
+        default:
+          _data = widget.beaconObject.aqiValues;
+          _yLabel = "Air Quality Index";
+          _chartIcon = Icons.toys;
+      }
+    });
 
     DateTime _lastUpload = DateTime
         .fromMillisecondsSinceEpoch(widget.beaconObject.lastUploadTime.toInt());

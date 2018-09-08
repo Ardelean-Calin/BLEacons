@@ -22,12 +22,14 @@ class _NearbyPageState extends State<NearbyPage> {
   StreamSubscription _scanSubscription;
   Timer _cleanupTimer;
   Map<String, double> _currentLocation;
+  bool _isDownloading;
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _beacons = {};
+    _isDownloading = false;
     _scanSubscription?.cancel();
     _getNearbyBeacons();
     // _startCleanupTimer();
@@ -62,7 +64,7 @@ class _NearbyPageState extends State<NearbyPage> {
 
     try {
       var response = await http.get(
-          "<YOUR_URL_HERE>graphql?query={beacon(id:\"$id\"){location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}");
+          "http://bleacons.ddns.net/graphql?query={beacon(id:\"$id\"){location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}");
       beacon = json.decode(response.body)["data"]["beacon"];
     } catch (e) {
       beacon = null;
@@ -89,6 +91,8 @@ class _NearbyPageState extends State<NearbyPage> {
       String id = result.device.id.id;
       String name = result.advertisementData.localName;
       if (name == "IAQ") {
+        _scanSubscription.pause();
+
         Beacon beacon = _createBeaconFromManufacturer(
             id, result.advertisementData.manufacturerData.values.toList()[0]);
 
@@ -101,7 +105,7 @@ class _NearbyPageState extends State<NearbyPage> {
           _beacons[id].pressureValues.addAll(beacon.pressureValues);
 
           // Remote update beacon
-          http.post("<YOUR_URL_HERE>graphql",
+          await http.post("http://bleacons.ddns.net/graphql",
               headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
@@ -124,7 +128,7 @@ class _NearbyPageState extends State<NearbyPage> {
           var existingBeacon = await _getBeaconFromInternet(id);
           // If there is no beacon with this ID, create one
           if (existingBeacon == null) {
-            http.post("<YOUR_URL_HERE>graphql",
+            await http.post("http://bleacons.ddns.net/graphql",
                 headers: {
                   'Content-Type': 'application/json',
                   'Accept': 'application/json',
@@ -155,8 +159,9 @@ class _NearbyPageState extends State<NearbyPage> {
 
         // Check if beacon exists
 
-        // http.post("http://localhost:4000/graphql", body: JSON.encode(bea))
+        // http.post("http://bleacons.ddns.net/graphql", body: JSON.encode(bea))
         if (this.mounted) setState(() {});
+        _scanSubscription.resume();
       }
     });
   }
@@ -208,7 +213,8 @@ class _NearbyPageState extends State<NearbyPage> {
                                 timeInSecForIos: 1,
                               );
 
-                              http.post("<YOUR_URL_HERE>graphql",
+                              http.post(
+                                  "http://bleacons.ddns.net/graphql",
                                   headers: {
                                     'Content-Type': 'application/json',
                                     'Accept': 'application/json',
@@ -232,14 +238,13 @@ class _NearbyPageState extends State<NearbyPage> {
                               DateTime.now().millisecondsSinceEpoch.toDouble();
                           double startTimestamp = DateTime
                               .now()
-                              .subtract(Duration(hours: 1))
+                              .subtract(Duration(hours: 3))
                               .millisecondsSinceEpoch
                               .toDouble();
 
                           String result = (await http.get(
-                                  "<YOUR_URL_HERE>graphql?query={beacon(id:\"$id\",restrictData:false,startTimestamp:$startTimestamp,stopTimestamp:$stopTimestamp){id,lastUpdate,lastBatteryLevel,location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
+                                  "http://bleacons.ddns.net/graphql?query={beacon(id:\"$id\",restrictData:false,startTimestamp:$startTimestamp,stopTimestamp:$stopTimestamp){id,lastUpdate,lastBatteryLevel,location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
                               .body;
-
                           var beaconData = jsonDecode(result)["data"]["beacon"];
 
                           Beacon tempBeacon =

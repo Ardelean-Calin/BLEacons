@@ -11,7 +11,7 @@ import 'package:location/location.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 
-const databaseURL = "<YOUR_URL_HERE>graphql";
+const databaseURL = "http://bleacons.ddns.net/graphql";
 
 class MapPage extends StatefulWidget {
   @override
@@ -116,7 +116,7 @@ class _MapPageState extends State<MapPage> {
 
   void _downloadDataForBeacon(id) async {
     String result = (await http.get(
-            "<YOUR_URL_HERE>graphql?query={beacon(id:\"$id\", restrictData: false){id,lastUpdate,lastBatteryLevel,location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
+            "http://bleacons.ddns.net/graphql?query={beacon(id:\"$id\", restrictData: false){id,lastUpdate,lastBatteryLevel,location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
         .body;
 
     var beaconData = jsonDecode(result)["data"]["beacon"];

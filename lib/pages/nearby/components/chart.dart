@@ -58,7 +58,8 @@ class SimpleLineChart extends StatelessWidget {
         tickFormatterSpec: charts.AutoDateTimeTickFormatterSpec(
           hour: charts.TimeFormatterSpec(
               format: "HH:mm", transitionFormat: "HH:mm"),
-          day: charts.TimeFormatterSpec(transitionFormat: "MM-dd-yyyy"),
+          day: charts.TimeFormatterSpec(
+              format: "d", transitionFormat: "MM-dd-yyyy"),
           minute: charts.TimeFormatterSpec(
               format: "HH:mm", transitionFormat: "HH:mm"),
         ),
