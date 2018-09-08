@@ -3,6 +3,7 @@ import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
 
 const int CHART_TICK_NO = 3;
+const int CHART_TICK_NO_Y = 3;
 
 class SimpleLineChart extends StatelessWidget {
   final List<charts.Series> seriesList;
@@ -30,7 +31,9 @@ class SimpleLineChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var staticTicks = <charts.TickSpec<DateTime>>[];
+    var staticPrimaryTicks = <charts.TickSpec<num>>[];
     int dataLength = seriesList[0].data.length;
+    String id = seriesList[0].id;
     // Now, create 5 ticks
     if (dataLength >= 2) {
       DateTime startTime = DateTime.fromMillisecondsSinceEpoch(
@@ -45,6 +48,15 @@ class SimpleLineChart extends StatelessWidget {
           CHART_TICK_NO + 1,
           (index) => charts.TickSpec(startTime
               .add(Duration(milliseconds: index * millisBetweenTicks))));
+
+      num minValue = seriesList[0].data.fold(seriesList[0].data[0].value,
+          (prev, point) => point.value < prev ? point.value : prev);
+      num maxValue = seriesList[0].data.fold(seriesList[0].data[0].value,
+          (prev, point) => point.value > prev ? point.value : prev);
+
+      num delta = (maxValue - minValue) / CHART_TICK_NO_Y;
+      staticPrimaryTicks = List.generate(CHART_TICK_NO_Y + 1,
+          (index) => charts.TickSpec((minValue + delta * index)));
     }
 
     return charts.TimeSeriesChart(
@@ -53,15 +65,23 @@ class SimpleLineChart extends StatelessWidget {
       dateTimeFactory: const charts.LocalDateTimeFactory(),
       domainAxis: charts.DateTimeAxisSpec(
         showAxisLine: false,
+        renderSpec: charts.SmallTickRendererSpec(labelOffsetFromAxisPx: 12),
         tickFormatterSpec: charts.AutoDateTimeTickFormatterSpec(
-          hour: charts.TimeFormatterSpec(
-              format: "HH:mm", transitionFormat: "HH:mm"),
-          day: charts.TimeFormatterSpec(
-              format: "d", transitionFormat: "MM-dd-yyyy"),
           minute: charts.TimeFormatterSpec(
-              format: "HH:mm", transitionFormat: "HH:mm"),
+              format: "HH:mm", transitionFormat: "dd-MMM\n HH:mm"),
         ),
         tickProviderSpec: charts.StaticDateTimeTickProviderSpec(staticTicks),
+      ),
+      primaryMeasureAxis: charts.NumericAxisSpec(
+        tickFormatterSpec: charts.BasicNumericTickFormatterSpec(
+          (num value) => id.contains("Quality")
+              ? value.toStringAsFixed(0)
+              : value == value.toInt()
+                  ? value.toStringAsFixed(0)
+                  : value.toStringAsFixed(1),
+        ),
+        tickProviderSpec:
+            charts.StaticNumericTickProviderSpec(staticPrimaryTicks),
       ),
       behaviors: [
         charts.PanAndZoomBehavior(),
@@ -70,8 +90,13 @@ class SimpleLineChart extends StatelessWidget {
           outsideJustification: charts.OutsideJustification.start,
         ),
       ],
-      defaultRenderer:
-          charts.LineRendererConfig(symbolRenderer: IconRenderer(dataIcon)),
+      defaultRenderer: charts.LineRendererConfig(
+        symbolRenderer: IconRenderer(dataIcon),
+        includeLine: true,
+        includePoints: false,
+        includeArea: true,
+        stacked: true,
+      ),
     );
   }
 
