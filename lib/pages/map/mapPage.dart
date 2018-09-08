@@ -47,7 +47,7 @@ class _MapPageState extends State<MapPage> {
   _getCurrentLocation() async {
     var location;
     try {
-      location = await (new Location()).getLocation;
+      location = await ((new Location()).getLocation());
     } catch (e) {
       location = null;
     }

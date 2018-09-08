@@ -72,7 +72,7 @@ class _NearbyPageState extends State<NearbyPage> {
   _getNearbyBeacons() async {
     var location;
     try {
-      location = await (new Location()).getLocation();
+      location = await ((new Location()).getLocation());
     } catch (e) {
       // No location, no nothing
       location = null;
