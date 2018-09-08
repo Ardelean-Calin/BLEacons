@@ -35,7 +35,7 @@ class _BeaconCardState extends State<BeaconCard> {
   void initState() {
     super.initState();
     _dataToShow = null;
-    _showChart = true;
+    _showChart = false;
     _renderChart = false;
     _moreDataRequested = false;
     _dataRequestSent = false;
