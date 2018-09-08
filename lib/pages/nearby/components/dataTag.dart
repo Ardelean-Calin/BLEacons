@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class DataTag extends StatelessWidget {
   DataTag(this._icon, this._data,
-      {this.iconColor, this.selected: false, this.onTap: null});
+      {this.iconColor, this.selected: false, this.onTap});
 
   final IconData _icon;
   final String _data;

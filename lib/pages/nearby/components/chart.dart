@@ -1,5 +1,3 @@
-import 'dart:math';
-
 /// Example of a simple line chart.
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
@@ -35,8 +33,8 @@ class SimpleLineChart extends StatelessWidget {
     int dataLength = seriesList[0].data.length;
     // Now, create 5 ticks
     if (dataLength >= 2) {
-      DateTime startTime = DateTime
-          .fromMillisecondsSinceEpoch(seriesList[0].data[0].time.toInt());
+      DateTime startTime = DateTime.fromMillisecondsSinceEpoch(
+          seriesList[0].data[0].time.toInt());
       DateTime lastTime = DateTime.fromMillisecondsSinceEpoch(
           seriesList[0].data[dataLength - 1].time.toInt());
       Duration timeDelta = lastTime.difference(startTime);

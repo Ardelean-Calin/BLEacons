@@ -4,14 +4,13 @@ import 'package:intl/intl.dart';
 
 import 'airquality.dart';
 import 'dataTag.dart';
-import 'labelText.dart';
 import 'package:bleacons/pages/nearby/components/chart.dart';
 
 class BeaconCard extends StatefulWidget {
-  Beacon beaconObject;
-  Key key;
-  Function resetLocationCallback;
-  Function downloadDataForBeacon;
+  final Beacon beaconObject;
+  final Key key;
+  final Function resetLocationCallback;
+  final Function downloadDataForBeacon;
 
   BeaconCard(
       {@required this.beaconObject,
@@ -87,8 +86,8 @@ class _BeaconCardState extends State<BeaconCard> {
       }
     });
 
-    DateTime _lastUpload = DateTime
-        .fromMillisecondsSinceEpoch(widget.beaconObject.lastUploadTime.toInt());
+    DateTime _lastUpload = DateTime.fromMillisecondsSinceEpoch(
+        widget.beaconObject.lastUploadTime.toInt());
 
     return Card(
       key: Key(widget.beaconObject.id.toString()),
@@ -155,7 +154,7 @@ class _BeaconCardState extends State<BeaconCard> {
                 children: <Widget>[
                   DataTag(
                     Icons.ac_unit,
-                    "${widget.beaconObject.temperatureValues[_dataLength-1].value.toStringAsFixed(1)}°C",
+                    "${widget.beaconObject.temperatureValues[_dataLength - 1].value.toStringAsFixed(1)}°C",
                     iconColor: Theme.of(context).primaryColor,
                     selected: _dataToShow == 1,
                     onTap: () {
@@ -167,7 +166,7 @@ class _BeaconCardState extends State<BeaconCard> {
                   ),
                   DataTag(
                     Icons.opacity,
-                    "${widget.beaconObject.humidityValues[_dataLength-1].value.toStringAsFixed(1)}%",
+                    "${widget.beaconObject.humidityValues[_dataLength - 1].value.toStringAsFixed(1)}%",
                     iconColor: Theme.of(context).primaryColor,
                     selected: _dataToShow == 2,
                     onTap: () {
@@ -179,7 +178,7 @@ class _BeaconCardState extends State<BeaconCard> {
                   ),
                   DataTag(
                     Icons.cloud_queue,
-                    " ${widget.beaconObject.pressureValues[_dataLength-1].value.toStringAsFixed(1)}kPa",
+                    " ${widget.beaconObject.pressureValues[_dataLength - 1].value.toStringAsFixed(1)}kPa",
                     iconColor: Theme.of(context).primaryColor,
                     selected: _dataToShow == 3,
                     onTap: () {

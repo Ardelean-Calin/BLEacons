@@ -264,7 +264,7 @@ class _MapWidgetState extends State<MapWidget> {
             },
             onDoubleTap: () {
               setState(() {
-                _camera.zoomLevel < 19 ? _camera.zoomLevel++ : null;
+                if (_camera.zoomLevel < 19) _camera.zoomLevel++;
               });
             },
           ),

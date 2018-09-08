@@ -15,7 +15,7 @@ class MapPin extends StatelessWidget {
   final LatLng coordinates;
   final IconData icon;
   final Color color;
-  Function onTap;
+  final Function onTap;
 
   double getX(int zoomLevel) {
     return fromLatLngX(coordinates, zoomLevel);

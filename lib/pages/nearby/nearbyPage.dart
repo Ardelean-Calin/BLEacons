@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:bleacons/classes/beacon.dart';
-import 'package:bleacons/classes/latlng.dart';
 import 'package:bleacons/pages/nearby/components/chart.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -22,14 +21,11 @@ class _NearbyPageState extends State<NearbyPage> {
   StreamSubscription _scanSubscription;
   Timer _cleanupTimer;
   Map<String, double> _currentLocation;
-  bool _isDownloading;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _beacons = {};
-    _isDownloading = false;
     _scanSubscription?.cancel();
     _getNearbyBeacons();
     // _startCleanupTimer();
@@ -43,28 +39,28 @@ class _NearbyPageState extends State<NearbyPage> {
   }
 
   // If a given beacon hasn't been updated in the last 10 seconds it's no longer in range
-  void _startCleanupTimer() {
-    _cleanupTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-      List<String> toRemove = [];
-      _beacons.forEach((String key, Beacon beacon) {
-        if (DateTime.now().difference(DateTime
-                .fromMillisecondsSinceEpoch(beacon.lastUploadTime.toInt())) >
-            Duration(seconds: 10)) {
-          toRemove.add(key);
-        }
-      });
-      setState(() {
-        toRemove.forEach((key) => _beacons.remove(key));
-      });
-    });
-  }
+  // void _startCleanupTimer() {
+  //   _cleanupTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+  //     List<String> toRemove = [];
+  //     _beacons.forEach((String key, Beacon beacon) {
+  //       if (DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(
+  //               beacon.lastUploadTime.toInt())) >
+  //           Duration(seconds: 10)) {
+  //         toRemove.add(key);
+  //       }
+  //     });
+  //     setState(() {
+  //       toRemove.forEach((key) => _beacons.remove(key));
+  //     });
+  //   });
+  // }
 
   _getBeaconFromInternet(String id) async {
     var beacon;
 
     try {
       var response = await http.get(
-          "http://bleacons.ddns.net/graphql?query={beacon(id:\"$id\"){location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}");
+          "http://gicamois.pythonanywhere.com/graphql?query={beacon(id:\"$id\"){location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}");
       beacon = json.decode(response.body)["data"]["beacon"];
     } catch (e) {
       beacon = null;
@@ -76,7 +72,7 @@ class _NearbyPageState extends State<NearbyPage> {
   _getNearbyBeacons() async {
     var location;
     try {
-      location = await (new Location()).getLocation;
+      location = await (new Location()).getLocation();
     } catch (e) {
       // No location, no nothing
       location = null;
@@ -105,7 +101,7 @@ class _NearbyPageState extends State<NearbyPage> {
           _beacons[id].pressureValues.addAll(beacon.pressureValues);
 
           // Remote update beacon
-          await http.post("http://bleacons.ddns.net/graphql",
+          await http.post("http://gicamois.pythonanywhere.com/graphql",
               headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
@@ -128,7 +124,7 @@ class _NearbyPageState extends State<NearbyPage> {
           var existingBeacon = await _getBeaconFromInternet(id);
           // If there is no beacon with this ID, create one
           if (existingBeacon == null) {
-            await http.post("http://bleacons.ddns.net/graphql",
+            await http.post("http://gicamois.pythonanywhere.com/graphql",
                 headers: {
                   'Content-Type': 'application/json',
                   'Accept': 'application/json',
@@ -159,7 +155,7 @@ class _NearbyPageState extends State<NearbyPage> {
 
         // Check if beacon exists
 
-        // http.post("http://bleacons.ddns.net/graphql", body: JSON.encode(bea))
+        // http.post("http://gicamois.pythonanywhere.com/graphql", body: JSON.encode(bea))
         if (this.mounted) setState(() {});
         _scanSubscription.resume();
       }
@@ -173,7 +169,7 @@ class _NearbyPageState extends State<NearbyPage> {
     double humidity = manufacturerData[4] + manufacturerData[5] / 100;
     double temperature = manufacturerData[2] + manufacturerData[3] / 100;
     int iaq = ((manufacturerData[0] & 0x01) << 8) + manufacturerData[1];
-    int accuracy = (manufacturerData[0] & 0x02) >> 1;
+    // int accuracy = (manufacturerData[0] & 0x02) >> 1;
 
     DateTime now = DateTime.now();
 
@@ -214,7 +210,7 @@ class _NearbyPageState extends State<NearbyPage> {
                               );
 
                               http.post(
-                                  "http://bleacons.ddns.net/graphql",
+                                  "http://gicamois.pythonanywhere.com/graphql",
                                   headers: {
                                     'Content-Type': 'application/json',
                                     'Accept': 'application/json',
@@ -236,14 +232,13 @@ class _NearbyPageState extends State<NearbyPage> {
                         downloadDataForBeacon: (id) async {
                           double stopTimestamp =
                               DateTime.now().millisecondsSinceEpoch.toDouble();
-                          double startTimestamp = DateTime
-                              .now()
+                          double startTimestamp = DateTime.now()
                               .subtract(Duration(hours: 3))
                               .millisecondsSinceEpoch
                               .toDouble();
 
                           String result = (await http.get(
-                                  "http://bleacons.ddns.net/graphql?query={beacon(id:\"$id\",restrictData:false,startTimestamp:$startTimestamp,stopTimestamp:$stopTimestamp){id,lastUpdate,lastBatteryLevel,location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
+                                  "http://gicamois.pythonanywhere.com/graphql?query={beacon(id:\"$id\",restrictData:false,startTimestamp:$startTimestamp,stopTimestamp:$stopTimestamp){id,lastUpdate,lastBatteryLevel,location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
                               .body;
                           var beaconData = jsonDecode(result)["data"]["beacon"];
 
