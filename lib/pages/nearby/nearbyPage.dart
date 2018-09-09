@@ -60,7 +60,7 @@ class _NearbyPageState extends State<NearbyPage> {
 
     try {
       var response = await http.get(
-          "http://gicamois.pythonanywhere.com/graphql?query={beacon(id:\"$id\"){location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}");
+          "<YOUR_URL_HERE>?query={beacon(id:\"$id\"){location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}");
       beacon = json.decode(response.body)["data"]["beacon"];
     } catch (e) {
       beacon = null;
@@ -103,7 +103,7 @@ class _NearbyPageState extends State<NearbyPage> {
 
           // Remote update beacon
           http.post(
-            "http://gicamois.pythonanywhere.com/graphql",
+            "<YOUR_URL_HERE>",
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -131,7 +131,7 @@ class _NearbyPageState extends State<NearbyPage> {
           _getBeaconFromInternet(id).then((existingBeacon) {
             // If there is no beacon with this ID, create one
             if (existingBeacon == null) {
-              http.post("http://gicamois.pythonanywhere.com/graphql",
+              http.post("<YOUR_URL_HERE>",
                   headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
@@ -160,7 +160,7 @@ class _NearbyPageState extends State<NearbyPage> {
 
         // Check if beacon exists
 
-        // http.post("http://gicamois.pythonanywhere.com/graphql", body: JSON.encode(bea))
+        // http.post("<YOUR_URL_HERE>", body: JSON.encode(bea))
         if (this.mounted) setState(() {});
         _scanSubscription.resume();
       }
@@ -214,8 +214,7 @@ class _NearbyPageState extends State<NearbyPage> {
                                 timeInSecForIos: 1,
                               );
 
-                              http.post(
-                                  "http://gicamois.pythonanywhere.com/graphql",
+                              http.post("<YOUR_URL_HERE>",
                                   headers: {
                                     'Content-Type': 'application/json',
                                     'Accept': 'application/json',
@@ -243,7 +242,7 @@ class _NearbyPageState extends State<NearbyPage> {
                               .toDouble();
 
                           String result = (await http.get(
-                                  "http://gicamois.pythonanywhere.com/graphql?query={beacon(id:\"$id\",restrictData:false,startTimestamp:$startTimestamp,stopTimestamp:$stopTimestamp){id,lastUpdate,lastBatteryLevel,location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
+                                  "<YOUR_URL_HERE>?query={beacon(id:\"$id\",restrictData:false,startTimestamp:$startTimestamp,stopTimestamp:$stopTimestamp){id,lastUpdate,lastBatteryLevel,location{latitude,longitude},aqiValues{value,time},temperatureValues{value,time},humidityValues{value,time},pressureValues{value,time}}}"))
                               .body;
                           var beaconData = jsonDecode(result)["data"]["beacon"];
 
