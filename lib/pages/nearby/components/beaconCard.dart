@@ -86,11 +86,15 @@ class _BeaconCardState extends State<BeaconCard> {
       }
     });
 
-    DateTime _lastUpload = DateTime.fromMillisecondsSinceEpoch(
-        widget.beaconObject.lastUploadTime.toInt());
+    DateTime _lastUpload;
+    if (widget.beaconObject.lastUploadTime != null)
+      _lastUpload = DateTime.fromMillisecondsSinceEpoch(
+          widget.beaconObject.lastUploadTime.toInt());
+    else
+      _lastUpload = DateTime.now();
 
     return Card(
-      key: Key(widget.beaconObject.id.toString()),
+      key: Key(widget.beaconObject.id?.toString()),
       elevation: 2.0,
       margin: EdgeInsets.all(10.0),
       child: Column(
@@ -107,7 +111,7 @@ class _BeaconCardState extends State<BeaconCard> {
               trailing: AirQualityIndex(
                 _dataLength != 0
                     ? widget.beaconObject.aqiValues[_dataLength - 1].value
-                        .toInt()
+                        ?.toInt()
                     : null,
                 onTap: () {
                   setState(() {
@@ -120,7 +124,7 @@ class _BeaconCardState extends State<BeaconCard> {
               title: Container(
                 margin: EdgeInsets.only(bottom: 3.0),
                 child: Text(
-                  widget.beaconObject.id,
+                  widget.beaconObject?.id,
                   // overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       fontSize: 22.0,

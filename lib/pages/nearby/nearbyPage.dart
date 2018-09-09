@@ -55,7 +55,7 @@ class _NearbyPageState extends State<NearbyPage> {
   //   });
   // }
 
-  _getBeaconFromInternet(String id) async {
+  Future<dynamic> _getBeaconFromInternet(String id) async {
     var beacon;
 
     try {
@@ -95,62 +95,67 @@ class _NearbyPageState extends State<NearbyPage> {
         // Beacon already exists locally => add data and update to cloud
         if (_beacons.containsKey(beacon.id)) {
           _beacons[id].lastUploadTime = beacon.lastUploadTime;
+          _beacons[id].lastBatteryLevel = beacon.lastBatteryLevel;
           _beacons[id].aqiValues.addAll(beacon.aqiValues);
           _beacons[id].temperatureValues.addAll(beacon.temperatureValues);
           _beacons[id].humidityValues.addAll(beacon.humidityValues);
           _beacons[id].pressureValues.addAll(beacon.pressureValues);
 
           // Remote update beacon
-          await http.post("http://gicamois.pythonanywhere.com/graphql",
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-              },
-              body: jsonEncode({
-                "query":
-                    "mutation UpdateBeacon(\$id: String, \$lastUpdate: Float, \$lastBatteryLevel: Float, \$aqiValue: DataPointInput, \$temperatureValue: DataPointInput, \$humidityValue: DataPointInput, \$pressureValue: DataPointInput ){updateBeacon(aqiValue: \$aqiValue, id: \$id, humidityValue: \$humidityValue, temperatureValue: \$temperatureValue, pressureValue: \$pressureValue, lastUpdate: \$lastUpdate, lastBatteryLevel: \$lastBatteryLevel){ok}}",
-                "variables": {
-                  "id": _beacons[id].id,
-                  "lastUpdate": beacon.lastUploadTime,
-                  "lastBatteryLevel": beacon.lastBatteryLevel,
-                  "aqiValue": beacon.aqiValues[0].toMap(),
-                  "temperatureValue": beacon.temperatureValues[0].toMap(),
-                  "pressureValue": beacon.pressureValues[0].toMap(),
-                  "humidityValue": beacon.humidityValues[0].toMap(),
-                }
-              }));
+          http.post(
+            "http://gicamois.pythonanywhere.com/graphql",
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              "query":
+                  "mutation UpdateBeacon(\$id: String, \$lastUpdate: Float, \$lastBatteryLevel: Float, \$aqiValue: DataPointInput, \$temperatureValue: DataPointInput, \$humidityValue: DataPointInput, \$pressureValue: DataPointInput ){updateBeacon(aqiValue: \$aqiValue, id: \$id, humidityValue: \$humidityValue, temperatureValue: \$temperatureValue, pressureValue: \$pressureValue, lastUpdate: \$lastUpdate, lastBatteryLevel: \$lastBatteryLevel){ok}}",
+              "variables": {
+                "id": _beacons[id].id,
+                "lastUpdate": beacon.lastUploadTime,
+                "lastBatteryLevel": beacon.lastBatteryLevel,
+                "aqiValue": beacon.aqiValues[0].toMap(),
+                "temperatureValue": beacon.temperatureValues[0].toMap(),
+                "pressureValue": beacon.pressureValues[0].toMap(),
+                "humidityValue": beacon.humidityValues[0].toMap(),
+              }
+            }),
+          );
         } else {
-          // Try and get a beacon from the internet first. Limited data only
-          var existingBeacon = await _getBeaconFromInternet(id);
-          // If there is no beacon with this ID, create one
-          if (existingBeacon == null) {
-            await http.post("http://gicamois.pythonanywhere.com/graphql",
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json',
-                },
-                body: jsonEncode({
-                  "query":
-                      "mutation CreateBeacon(\$id: String, \$location: LocationInput){createBeacon(id:\$id, location:\$location){ok}}",
-                  "variables": {
-                    "id": id,
-                    "location": {
-                      "longitude": location["longitude"],
-                      "latitude": location["latitude"]
-                    }
-                  }
-                }));
-            // Then add it to the current beacons
-            _beacons[id] = beacon;
-          } else {
-            // If there is a beacon with this ID already, just add it and it's data to our
-            // local beacons list
-            _beacons[id] = Beacon.fromData(beaconData: existingBeacon);
-            _beacons[id].id = id;
-          }
-
+          // The beacon did not exist, add it here
+          _beacons[id] = beacon;
           _beacons[id].lastUploadTime = beacon.lastUploadTime;
           _beacons[id].lastBatteryLevel = beacon.lastBatteryLevel;
+          // Try and get additional data from the internet regarding the beacon
+          _getBeaconFromInternet(id).then((existingBeacon) {
+            // If there is no beacon with this ID, create one
+            if (existingBeacon == null) {
+              http.post("http://gicamois.pythonanywhere.com/graphql",
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                  },
+                  body: jsonEncode({
+                    "query":
+                        "mutation CreateBeacon(\$id: String, \$location: LocationInput){createBeacon(id:\$id, location:\$location){ok}}",
+                    "variables": {
+                      "id": id,
+                      "location": {
+                        "longitude": location["longitude"],
+                        "latitude": location["latitude"]
+                      }
+                    }
+                  }));
+            } else {
+              // If there is a beacon with this ID already, just add it and it's data to our
+              // local beacons list
+              // TODO: The last upload time and battery level get overridden
+              // Beacon onlineBeacon = Beacon.fromData(beaconData: existingBeacon);
+              _beacons[id] = Beacon.fromData(beaconData: existingBeacon);
+              _beacons[id].id = id;
+            }
+          });
         }
 
         // Check if beacon exists

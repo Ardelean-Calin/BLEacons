@@ -122,7 +122,6 @@ class IconRenderer extends charts.CustomSymbolRenderer {
 
   @override
   Widget build(BuildContext context, {Color color, Size size, bool enabled}) {
-    // TODO: implement build
     return Icon(iconData, color: color, size: 20.0);
   }
 }
